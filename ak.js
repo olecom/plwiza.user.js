@@ -6,6 +6,7 @@
 // v002@2012-04-18, 2012-04-19
 // v003@2012-04-20  https://addons.mozilla.org/ru/firefox/addon/scriptish/
 //                  ak
+// v004@2012-05-13  ids back in xls, demo left here
 
 (function(w, unWin){
 /**** Главная страница консульства
@@ -501,7 +502,8 @@ unWin.pfd = function() { // pop filled data
 		unWin.fa = null
 		return
 	}
-	el.dispatchEvent(mkChange())
+	if (BPEM9 > 111)
+		el.dispatchEvent(mkChange())
 	++unWin.dataJ
 	setTimeout('pfd()', BPEM9)
 }
