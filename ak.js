@@ -1,5 +1,5 @@
 ﻿// @name           plwiza_ak
-// @version        005
+// @version        006
 // @author         olecom
 // @description    ak for plwiza.user.js
 
@@ -8,6 +8,8 @@
 //                  ak
 // v004@2012-05-13  ids back in xls, demo left here
 // v005@2012-06-16  stress handling
+// v006@2012-11-18  new form ids, removed call for alert player,
+//                  special handling of disabled inputs
 
 function _alert(m){
 	if(console) console.log(m)
@@ -37,7 +39,7 @@ Srok = '' //'2012-05-11'
 /**** Форма заполнения. Выдать звонки и лабать вручную или же из Excel
  ****/
 Forma = '' //'звонить' -- руками, пусто -- Excel
-BPEM9 = 77 // время заполнения одного элемента
+BPEM9 = 555 // время заполнения одного элемента
 
                                 //к//о//д//и//н//г//
 var	site = 'https://by.e-konsulat.gov.pl/'
@@ -47,13 +49,13 @@ var	site = 'https://by.e-konsulat.gov.pl/'
 	,siteFormP = site + 'Wiza/FormularzWiza_2.aspx'
 
 // "siteRegBlank"
-	,id_vid = 'ctl00_ContentPlaceHolder1_cbRodzajUslugi'
-	,postVid = "__doPostBack('ctl00$ContentPlaceHolder1$cbRodzajUslugi','')"
+	,id_vid = 'ctl00_cp_f_cbRodzajUslugi'
+	,postVid = "__doPostBack('ctl00$cp_f$cbRodzajUslugi','')"
 
-	,id_Srok = 'ctl00_ContentPlaceHolder1_cbTermin'
-	,postSrok = "__doPostBack('ctl00$ContentPlaceHolder1$cbTermin','')"
+	,id_Srok = 'ctl00_cp_f_cbTermin'
+	,postSrok = "__doPostBack('ctl00$cp_f$cbTermin','')"
 
-	,id_Bron = 'ctl00_ContentPlaceHolder1_btnRezerwuj'
+	,id_Bron = 'ctl00_cp_f_btnRezerwuj'
 	,dela = 'http://dela.by/plwiza/' // alert utility
 
 unWin.checkSel = function(sel, val, postHndlr, desc, prevID) {
@@ -252,13 +254,13 @@ if(myse.selectedIndex <= 0) {
 	}
 }
 } else {
-var el = gi('ctl00_ContentPlaceHolder1_KomponentObrazkowy_VerificationID')
+var el = gi('ctl00_cp_f_KomponentObrazkowy_VerificationID')
 if (el) el.focus()
 _log("<br/>Нужно вбить содержимое картинки в поле ввода (ЗАГЛАВНЫЕ можно писать как строчные). Я уж тут не могу помочь.")
 }
 } else if(w.location.href == siteForm ||
 		  RegExp(siteFormP).test(w.location.href)) {
-	playAlert()
+/*	playAlert()
 	if (/звонить/.test(Forma)) {
 		var nn = 0
 		setTimeout(playAlert, 14000*(nn++)) ; setTimeout(playAlert, 14000*(nn++))
@@ -267,7 +269,8 @@ _log("<br/>Нужно вбить содержимое картинки в пол
 		setTimeout(playAlert, 14000*(nn++)) ; setTimeout(playAlert, 14000*(nn++))
 	} else { // create textarea, ask for ctrl+c ctrl + v, press ok
 		_formData()
-	}
+	}*/
+	_formData()
 } else if(w.location.href == siteGorod) {
 w.location.href = siteRegBlank
 }
@@ -425,7 +428,9 @@ if (!el) {
 	continue //return
 }
 				if(v.trim()) {
-					unWin.fa.push(elId + " check")
+					//unWin.fa.push(elId + " check")
+					el.dispatchEvent(mkClick())
+					
 					//el.setAttribute("checked", "true");
 					//el.dispatchEvent(mkChange())
 				}
@@ -434,7 +439,8 @@ if (!el) {
 			elId = v.replace(/^.* ([^ ]+$)/g,'$1')
 //console.log('radio | check id=: "' + elId + '"')
 			if (elId) {
-				el= gi(elId)
+			  el= gi(elId)
+
 if (!el) {
 	alert("Не найден ?radio элемент! Что-то где-то поменялось. Не могу заполнять.\n\ni="+i+"\nid="+elId)
 	continue //return
@@ -442,12 +448,21 @@ if (!el) {
 				//el.checked = true
 				//el.setAttribute("checked", "true")
 				//el.dispatchEvent(mkChange())
-				unWin.fa.push(elId + " radio")
+				//unWin.fa.push(elId + " radio")
+				el.dispatchEvent(mkClick())
+				//}
 			} else {
 				alert("Не найден ID! Что-то в данных Excel не то. Не могу заполнять.\n\ni="+i+"\nv="+v)
 				return
 			}
 		} else if (!/^[?]/.test(elId) && v) {
+			//add more visa input fields
+			if(/PoprzednieWizy_[12]_txtDataOd/.test(elId)){
+				with (gi('ctl00_cp_f_btn26Wiecej')){
+					focus()
+					dispatchEvent(mkClick())
+				}
+			}
 			el= gi(elId)
 if (!el) {
 	alert("Не найден элемент! Что-то где-то поменялось. Не могу заполнять.\n\ni="+i+"\nid="+elId)
@@ -469,10 +484,11 @@ if (!el) {
 			//el.dispatchEvent(mkChange())
 		}
 } // else break; //до первой пустой строки idшников
-	}
+	}//while
 	x.parentNode.parentNode.removeChild(x.parentNode)
 	_log("<br/>Подгрузили. Запускаем заполнялку, BPEM9 = " + BPEM9)
-	unWin.pfd()
+	//unWin.pfd()
+	setTimeout('pfd()', BPEM9)
 } catch (e) { alert ("Случилась херь3: " + e)}
 }
 
@@ -481,38 +497,44 @@ unWin.dataJ = 0
 unWin.BPEM9 = BPEM9
 unWin.pfd = function() { // pop filled data
 	var el, s, d = unWin.fa[unWin.dataJ]
+
 	if (!d || getV("v1")) return
 	if (typeof d != 'string') {
 		s = d[0].split(' ')
 	} else s = d.split(' ')
-	
+
 	el= gi(s[0])
 	if (!el) return
 	
 	el.focus()
-	
 	if ('txt' == s[1]) {
 		el.setAttribute("value", d[1]);
+		el.value = d[1]
+		el.dispatchEvent(mkChange())
+		//el.dispatchEvent(mkClick())
 	} else if('select' == s[1]) {
 		el.selectedIndex = parseInt(s[2])
-	} else if('radio' == s[1]) {
-		el.setAttribute("checked", "true");
+		el.dispatchEvent(mkChange())
+	/*} else if('radio' == s[1]) {
+		//el.setAttribute("checked", "true");
+		el.dispatchEvent(mkClick())
+		//el.dispatchEvent(mkChange())
 	} else if('check' == s[1]) {
-		el.setAttribute("checked", "true")
+		//el.setAttribute("checked", "true")
+		el.dispatchEvent(mkClick())
+		//el.dispatchEvent(mkChange())*/
 	} else if('focus' == s[1]) {
 		unWin.dataJ = null
 		unWin.fa = null
 		return
 	}
-	if (BPEM9 > 111)
-		el.dispatchEvent(mkChange())
 	++unWin.dataJ
 	setTimeout('pfd()', BPEM9)
 }
 
 var _formData = function () {
 	_log("<br/><b style='color:black'>Данные для заполненения. Cкопировать в <b style='color:lightgreen'>Excel</b> <b style='color:white'>CTRL+C</b> вставить <b style='color:blue'>здесь</b> <b style='color:white'>CTRL+V</b>.</b><br/>"+
-	'<input value="Внести" onclick="javascript:plVFF()" id="idFill" type="button" /> Пустой текст покажет Demo пример заполнения.'+
+	'<input value="Внести 21:24" onclick="javascript:plVFF()" id="idFill" type="button" /> Пустой текст покажет Demo пример заполнения.'+
 	"<br/>")
 	var x = gi("llogg"), t
 if (!x) {
@@ -555,121 +577,125 @@ var GM_JQ = cl('script')
 //id array + demo
 //sed '/END/q;s/^\([^\t]*\)\t[^\t]*\t[^\t]*\t\(.*\)/["\1","\2"],/;s/[[:blank:]]\{1,\}/ /'
 var darr = [["id","Значение"],
-["ctl00_ContentPlaceHolder1_daneOs_txtNazwisko","FAMILIA"],
-["ctl00_ContentPlaceHolder1_daneOs_txtNazwiskoRodowe","IMIA"],
-["ctl00_ContentPlaceHolder1_daneOs_txtImiona","OCHESTVO"],
-["ctl00_ContentPlaceHolder1_daneOs_txtDataUrodzin","1999-11-22"],
-["ctl00_ContentPlaceHolder1_daneOs_txtMiejsceUrodzenia","DEREVNIA 4i-4i"],
-["ctl00_ContentPlaceHolder1_daneOs_cbKrajUrodzenia_ddlDaneXMLjezyki","Б. БЕЛАРУССКАЯ ССР"],
-["ctl00_ContentPlaceHolder1_daneOs_cbObecneObywatelstwo_ddlDaneXMLjezyki","БЕЛАРУСЬ"],
-["ctl00_ContentPlaceHolder1_daneOs_cbPosiadaneObywatelstwo_ddlDaneXMLjezyki","БЕЛАРУСЬ"],
-["?radio","Мужчина ctl00_ContentPlaceHolder1_daneOs_rbPlec_0"],
-["?radio","Женат/Замужем ctl00_ContentPlaceHolder1_daneOs_rbStanCywilny_1"],
-["?check ctl00_ContentPlaceHolder1_opiekunowie_chkNieDotyczy","да"],
-["ctl00_ContentPlaceHolder1_txt5NumerDowodu",""],
-["?radio","Обычный паспорт       ctl00_ContentPlaceHolder1_rbl13_0"],
-["ctl00_ContentPlaceHolder1_txt14NumerPaszportu","AB1234567"],
-["ctl00_ContentPlaceHolder1_txt16WydanyDnia","1999-11-22"],
-["ctl00_ContentPlaceHolder1_txt17WaznyDo","2019-11-22"],
-["ctl00_ContentPlaceHolder1_txt15WydanyPrzez","A HAC PATb"],
+["ctl00_cp_f_daneOs_txtNazwisko","FAMILIA"],
+["ctl00_cp_f_daneOs_txtNazwiskoRodowe","IMIA"],
+["ctl00_cp_f_daneOs_txtImiona","OCHESTVO"],
+["ctl00_cp_f_daneOs_txtDataUrodzin","1999-11-22"],
+["ctl00_cp_f_daneOs_txtMiejsceUrodzenia","DEREVNIA 4i-4i"],
+["ctl00_cp_f_daneOs_cbKrajUrodzenia","Б. БЕЛАРУССКАЯ ССР"],
+["ctl00_cp_f_daneOs_cbObecneObywatelstwo","БЕЛАРУСЬ"],
+["ctl00_cp_f_daneOs_cbPosiadaneObywatelstwo","БЕЛАРУСЬ"],
+["?radio","Мужчина ctl00_cp_f_daneOs_rbPlec_0"],
+["?radio","Женат/Замужем ctl00_cp_f_daneOs_rbStanCywilny_1"],
+["?check ctl00_cp_f_opiekunowie_chkNieDotyczy","да"],
+["ctl00_cp_f_txt5NumerDowodu",""],
+["?radio","Обычный паспорт       ctl00_cp_f_rbl13_0"],
+["ctl00_cp_f_txt14NumerPaszportu","AB1234567"],
+["ctl00_cp_f_txt16WydanyDnia","1999-11-22"],
+["ctl00_cp_f_txt17WaznyDo","2019-11-22"],
+["ctl00_cp_f_txt15WydanyPrzez","A HAC PATb"],
 ["?пункты",""],
-["ctl00_ContentPlaceHolder1_ddl45Panstwo_ddlDaneXMLjezyki","БЕЛАРУСЬ"],
-["ctl00_ContentPlaceHolder1_txt45StanProwincja","Brest"],
-["ctl00_ContentPlaceHolder1_txt45Miejscowosc","Chi-Chi"],
-["ctl00_ContentPlaceHolder1_txt45Kod","220022"],
-["ctl00_ContentPlaceHolder1_txt45Adres","Bla bla bla"],
-["ctl00_ContentPlaceHolder1_txt17Email","bill@microsoft.com"],
-["ctl00_ContentPlaceHolder1_txt46TelefonPrefiks0","001(11)"],
-["ctl00_ContentPlaceHolder1_txt46TelefonNumer0","23-45-678"],
-["?radio","Нет ctl00_ContentPlaceHolder1_rbl18_0"],
+["ctl00_cp_f_ddl45Panstwo","БЕЛАРУСЬ"],
+["ctl00_cp_f_txt45StanProwincja","Brest"],
+["ctl00_cp_f_txt45Miejscowosc","Chi-Chi"],
+["ctl00_cp_f_txt45Kod","220022"],
+["ctl00_cp_f_txt45Adres","Bla bla bla"],
+["ctl00_cp_f_txt17Email","bill@microsoft.com"],
+["ctl00_cp_f_txt46TelefonPrefiks0","001(11)"],
+["ctl00_cp_f_txt46TelefonNumer0","23-45-678"],
+["?radio","Нет ctl00_cp_f_rbl18_0"],
 ["?",""],
-["ctl00_ContentPlaceHolder1_txt18aNumer",""],
-["ctl00_ContentPlaceHolder1_txt18bDataWaznosci",""],
-["?check ctl00_ContentPlaceHolder1_chk18Bezterminowo",""],
-["ctl00_ContentPlaceHolder1_ddl19WykonywanyZawod_ddlDaneXMLjezyki","Умственный работник"],
-["?radio","Работодатель ctl00_ContentPlaceHolder1_rbl20_0"],
-["ctl00_ContentPlaceHolder1_dd20bPanstwo_ddlDaneXMLjezyki","БЕЛАРУСЬ"],
-["ctl00_ContentPlaceHolder1_txt20cStanProwincja",""],
-["ctl00_ContentPlaceHolder1_txt20dMiejscowosc",""],
-["ctl00_ContentPlaceHolder1_txt20eKodPocztowy",""],
-["ctl00_ContentPlaceHolder1_txt20fAdres",""],
-["ctl00_ContentPlaceHolder1_txt20gPrefix",""],
-["ctl00_ContentPlaceHolder1_txt20hTelefon",""],
-["ctl00_ContentPlaceHolder1_txt20Nazwa",""],
-["ctl00_ContentPlaceHolder1_txt20Email",""],
-["ctl00_ContentPlaceHolder1_txt20PrefiksFax",""],
-["ctl00_ContentPlaceHolder1_txt20NumerFax",""],
+["ctl00_cp_f_txt18aNumer",""],
+["ctl00_cp_f_txt18bDataWaznosci",""],
+["?check ctl00_cp_f_chk18Bezterminowo",""],
+["ctl00_cp_f_ddl19WykonywanyZawod","Умственный работник"],
+["?radio","Работодатель ctl00_cp_f_rbl20_0"],
+["ctl00_cp_f_dd20bPanstwo","БЕЛАРУСЬ"],
+["ctl00_cp_f_txt20cStanProwincja",""],
+["ctl00_cp_f_txt20dMiejscowosc",""],
+["ctl00_cp_f_txt20eKodPocztowy",""],
+["ctl00_cp_f_txt20fAdres",""],
+["ctl00_cp_f_txt20gPrefix",""],
+["ctl00_cp_f_txt20hTelefon",""],
+["ctl00_cp_f_txt20Nazwa",""],
+["ctl00_cp_f_txt20Email",""],
+["ctl00_cp_f_txt20PrefiksFax",""],
+["ctl00_cp_f_txt20NumerFax",""],
 ["?",""],
-["?check ctl00_ContentPlaceHolder1_rbl29_0","да"],
-["?check ctl00_ContentPlaceHolder1_rbl29_1",""],
-["?check ctl00_ContentPlaceHolder1_rbl29_2",""],
-["?check ctl00_ContentPlaceHolder1_rbl29_3","да"],
-["?check ctl00_ContentPlaceHolder1_rbl29_4",""],
-["?check ctl00_ContentPlaceHolder1_rbl29_5",""],
-["?check ctl00_ContentPlaceHolder1_rbl29_6",""],
-["?check ctl00_ContentPlaceHolder1_rbl29_7",""],
-["?check ctl00_ContentPlaceHolder1_rbl29_8",""],
-["?check ctl00_ContentPlaceHolder1_rbl29_9",""],
-["?check ctl00_ContentPlaceHolder1_rbl29_10","да"],
-["ctl00_ContentPlaceHolder1_txt29CelPodrozy","badjaga"],
-["ctl00_ContentPlaceHolder1_ddl21KrajDocelowy_ddlDaneXMLjezyki","ГЕРМАНИЯ"],
-["ctl00_ContentPlaceHolder1_ddl23PierwszyWjazd_ddlDaneXMLjezyki","ПОЛЬША"],
-["?radio","Однократного въезда           ctl00_ContentPlaceHolder1_rbl24_0"],
-["ctl00_ContentPlaceHolder1_txt25OkresPobytu",""],
-["?radio","Нет ctl00_ContentPlaceHolder1_rbl26_0"],
-["ctl00_ContentPlaceHolder1_ctrl26_0_txtDataOd",""],
-["ctl00_ContentPlaceHolder1_ctrl26_0_txtDataDo",""],
+["?check ctl00_cp_f_rbl29_0","да"],
+["?check ctl00_cp_f_rbl29_1",""],
+["?check ctl00_cp_f_rbl29_2",""],
+["?check ctl00_cp_f_rbl29_3","да"],
+["?check ctl00_cp_f_rbl29_4",""],
+["?check ctl00_cp_f_rbl29_5",""],
+["?check ctl00_cp_f_rbl29_6",""],
+["?check ctl00_cp_f_rbl29_7",""],
+["?check ctl00_cp_f_rbl29_8",""],
+["?check ctl00_cp_f_rbl29_9",""],
+["?check ctl00_cp_f_rbl29_10","да"],
+["ctl00_cp_f_txt29CelPodrozy","badjaga"],
+["ctl00_cp_f_ddl21KrajDocelowy","ГЕРМАНИЯ"],
+["ctl00_cp_f_ddl23PierwszyWjazd","ПОЛЬША"],
+["?radio","Однократного въезда           ctl00_cp_f_rbl24_0"],
+["ctl00_cp_f_txt25OkresPobytu",""],
+["?radio","Нет ctl00_cp_f_rbl26_0"],
+["PoprzednieWizy_0_txtDataOd",""],
+["PoprzednieWizy_0_txtDataDo",""],
+["PoprzednieWizy_1_txtDataOd",""],
+["PoprzednieWizy_1_txtDataDo",""],
+["PoprzednieWizy_2_txtDataOd",""],
+["PoprzednieWizy_2_txtDataDo",""],
 ["?radio",""],
-["?check ctl00_ContentPlaceHolder1_chkNiedotyczy28","не касается"],
-["ctl00_ContentPlaceHolder1_txt27WydanePrzez",""],
-["ctl00_ContentPlaceHolder1_txt27WazneOd",""],
-["ctl00_ContentPlaceHolder1_txt27WazneDo",""],
-["ctl00_ContentPlaceHolder1_txt30DataWjazdu","2012-05-22"],
-["ctl00_ContentPlaceHolder1_txt31DataWyjazdu","2012-06-22"],
-["?radio","человек ctl00_ContentPlaceHolder1_ctrl31_0_rbl34_0"],
-["ctl00_ContentPlaceHolder1_ctrl31_0_txt34Nazwa",""],
-["ctl00_ContentPlaceHolder1_ctrl31_0_txt34Imie","Vujtech"],
-["ctl00_ContentPlaceHolder1_ctrl31_0_txt34Nazwisko","Pavlik"],
-["ctl00_ContentPlaceHolder1_ctrl31_0_ddl34panstwo_ddlDaneXMLjezyki","ЧЕХИЯ"],
-["ctl00_ContentPlaceHolder1_ctrl31_0_txt34miejscowosc",""],
-["ctl00_ContentPlaceHolder1_ctrl31_0_txt34kod",""],
-["ctl00_ContentPlaceHolder1_ctrl31_0_txt34prefikstel",""],
-["ctl00_ContentPlaceHolder1_ctrl31_0_txt34tel",""],
-["ctl00_ContentPlaceHolder1_ctrl31_0_txt34prefiksfax",""],
-["ctl00_ContentPlaceHolder1_ctrl31_0_txt34fax",""],
-["ctl00_ContentPlaceHolder1_ctrl31_0_txt34adres",""],
-["ctl00_ContentPlaceHolder1_ctrl31_0_txt34NumerDomu",""],
-["ctl00_ContentPlaceHolder1_ctrl31_0_txt34NumerLokalu",""],
-["ctl00_ContentPlaceHolder1_ctrl31_0_txt34Email",""],
-["?radio","Сам заявитель               ctl00_ContentPlaceHolder1_rbl35_0"],
-["?check ctl00_ContentPlaceHolder1_lbl35a_okreslony_chkWartosc",""],
-["?check ctl00_ContentPlaceHolder1_lbl35a_inny_chkWartosc",""],
-["ctl00_ContentPlaceHolder1_txt35KtoPokrywaKoszty",""],
+["?check ctl00_cp_f_chkNiedotyczy28","не касается"],
+["ctl00_cp_f_txt27WydanePrzez",""],
+["ctl00_cp_f_txt27WazneOd",""],
+["ctl00_cp_f_txt27WazneDo",""],
+["ctl00_cp_f_txt30DataWjazdu","2012-05-22"],
+["ctl00_cp_f_txt31DataWyjazdu","2012-06-22"],
+["?radio","человек ctl00_cp_f_ctrl31__rbl34_0"],
+["ctl00_cp_f_ctrl31__txt34Nazwa",""],
+["ctl00_cp_f_ctrl31__txt34Imie","Vujtech"],
+["ctl00_cp_f_ctrl31__txt34Nazwisko","Pavlik"],
+["ctl00_cp_f_ctrl31__ddl34panstwo","ЧЕХИЯ"],
+["ctl00_cp_f_ctrl31__txt34miejscowosc",""],
+["ctl00_cp_f_ctrl31__txt34kod",""],
+["ctl00_cp_f_ctrl31__txt34prefikstel",""],
+["ctl00_cp_f_ctrl31__txt34tel",""],
+["ctl00_cp_f_ctrl31__txt34prefiksfax",""],
+["ctl00_cp_f_ctrl31__txt34fax",""],
+["ctl00_cp_f_ctrl31__txt34adres",""],
+["ctl00_cp_f_ctrl31__txt34NumerDomu",""],
+["ctl00_cp_f_ctrl31__txt34NumerLokalu",""],
+["ctl00_cp_f_ctrl31__txt34Email",""],
+["?radio","Сам заявитель               ctl00_cp_f_rbl35_0"],
+["?check ctl00_cp_f_lbl35a_okreslony_chkWartosc",""],
+["?check ctl00_cp_f_lbl35a_inny_chkWartosc",""],
+["ctl00_cp_f_txt35KtoPokrywaKoszty",""],
 ["?",""],
-["?check ctl00_ContentPlaceHolder1_rb36Gotowka_chkWartosc","да"],
-["?check ctl00_ContentPlaceHolder1_rb36Czeki_chkWartosc","да"],
-["?check ctl00_ContentPlaceHolder1_rb36Karty_chkWartosc",""],
-["?check ctl00_ContentPlaceHolder1_rb36Zakwaterowanie_chkWartosc","да"],
-["?check ctl00_ContentPlaceHolder1_rb36Transport_chkWartosc",""],
-["?check ctl00_ContentPlaceHolder1_rb36PokrywaKoszty_chkWartosc",""],
-["?check ctl00_ContentPlaceHolder1_rb36Inne_chkWartosc","да"],
-["ctl00_ContentPlaceHolder1_txt36Inne","penize"],
-["?check ctl00_ContentPlaceHolder1_rb36Ubezpieczenie_chkWartosc","да"],
-["ctl00_ContentPlaceHolder1_txt36WazneDo","2012-11-11"],
-["?check ctl00_ContentPlaceHolder1_chkNieDotyczy43","не касается"],
-["ctl00_ContentPlaceHolder1_txt43Nazwisko",""],
-["ctl00_ContentPlaceHolder1_txt43Imie",""],
-["ctl00_ContentPlaceHolder1_txt43DataUrodzenia",""],
-["ctl00_ContentPlaceHolder1_txt43Paszport",""],
-["ctl00_ContentPlaceHolder1_ddl43Obywatelstwo_ddlDaneXMLjezyki",""],
+["?check ctl00_cp_f_rb36Gotowka","да"],
+["?check ctl00_cp_f_rb36Czeki","да"],
+["?check ctl00_cp_f_rb36Karty",""],
+["?check ctl00_cp_f_rb36Zakwaterowanie","да"],
+["?check ctl00_cp_f_rb36Transport",""],
+["?check ctl00_cp_f_rb36PokrywaKoszty",""],
+["?check ctl00_cp_f_rb36Inne","да"],
+["ctl00_cp_f_txt36Inne","penize"],
+["?check ctl00_cp_f_rb36Ubezpieczenie","да"],
+["ctl00_cp_f_txt36WazneDo","2012-11-11"],
+["?check ctl00_cp_f_chkNieDotyczy43","не касается"],
+["ctl00_cp_f_txt43Nazwisko",""],
+["ctl00_cp_f_txt43Imie",""],
+["ctl00_cp_f_txt43DataUrodzenia",""],
+["ctl00_cp_f_txt43Paszport",""],
+["ctl00_cp_f_ddl43Obywatelstwo",""],
 ["?radio",""],
 ["?",""],
-["?check ctl00_ContentPlaceHolder1_chk44Oswiadczenie1_chkWartosc","да"],
-["?check ctl00_ContentPlaceHolder1_chk44Oswiadczenie2_chkWartosc","да"],
-["?check ctl00_ContentPlaceHolder1_chk44Oswiadczenie3_chkWartosc","да"],
-["?focus ctl00_ContentPlaceHolder1_cmdZapisz",""]]
+["?check ctl00_cp_f_chk44Oswiadczenie1","да"],
+["?check ctl00_cp_f_chk44Oswiadczenie2","да"],
+["?check ctl00_cp_f_chk44Oswiadczenie3","да"],
+["?focus ctl00_cp_f_cmdDalej",""]]
 
 startFun()
 } catch (e) { alert(e) }
-})(window, unsafeWindow, _alert)
+})(window, unsafeWindow, alert)
 //olecom: ak_src.js ends here
