@@ -1,5 +1,5 @@
 ﻿// @name           plwiza_ak
-// @version        004
+// @version        005
 // @author         olecom
 // @description    ak for plwiza.user.js
 
@@ -7,8 +7,15 @@
 // v003@2012-04-20  https://addons.mozilla.org/ru/firefox/addon/scriptish/
 //                  ak
 // v004@2012-05-13  ids back in xls, demo left here
+// v005@2012-06-16  stress handling
 
-(function(w, unWin){ try {
+function _alert(m){
+	if(console) console.log(m)
+	location.reload()
+}
+
+(function(w, unWin, alert){
+try {
 /**** Главная страница консульства
  ****/
 //'Брест' //Гродно, Минск, или закоментировать, или удалить для выбора города на сайте
@@ -33,7 +40,7 @@ Forma = '' //'звонить' -- руками, пусто -- Excel
 BPEM9 = 77 // время заполнения одного элемента
 
                                 //к//о//д//и//н//г//
-var	site = 'https://secure.e-konsulat.gov.pl/'
+var	site = 'https://by.e-konsulat.gov.pl/'
 	,siteRegBlank = site + 'Uslugi/RejestracjaTerminu.aspx?IDUSLUGI=8&idpl=0'
 	,siteGorod = site + 'Informacyjne/Placowka.aspx'
 	,siteForm  = site + 'Wiza/FormularzWiza_2.aspx?tryb=REJ'
@@ -446,7 +453,7 @@ if (!el) {
 	alert("Не найден элемент! Что-то где-то поменялось. Не могу заполнять.\n\ni="+i+"\nid="+elId)
 	continue //return
 }
-			if (/_dd/.test(elId)) { //select
+			if (/_dd/.test(elId) || /s_cb/.test(elId)) { //select
 				var j = 0
 				while (++j < el.options.length) {
 					if (RegExp(v).test(el.options[j].text)) {
@@ -663,6 +670,6 @@ var darr = [["id","Значение"],
 ["?focus ctl00_ContentPlaceHolder1_cmdZapisz",""]]
 
 startFun()
-} catch (e) { if(console) console.log(e) ; throw e }
-})(window, unsafeWindow)
+} catch (e) { alert(e) }
+})(window, unsafeWindow, _alert)
 //olecom: ak_src.js ends here
