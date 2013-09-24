@@ -1,5 +1,5 @@
 ﻿// @name           plwiza_ak
-// @version        1.0
+// @version        004
 // @author         olecom
 // @description    ak for plwiza.user.js
 
@@ -8,11 +8,11 @@
 //                  ak
 // v004@2012-05-13  ids back in xls, demo left here
 
-(function(w, unWin){
+(function(w, unWin){ try {
 /**** Главная страница консульства
  ****/
 //'Брест' //Гродно, Минск, или закоментировать, или удалить для выбора города на сайте
-//Gorod = "\u0411\u0440\u0435\u0441\u0442"
+Gorod = "\u0411\u0440\u0435\u0441\u0442" //Brest
 
 /**** Регистрация бланка
  ****/
@@ -21,23 +21,19 @@
 //vid = 'ПОКУПКИ'
 //vid = 'ТУРИЗМ'
 //vid = 'ГОСТ'
+vid = "\u0413\u041e\u0421\u0422" //Guest
 
 //Срок, когда деятельность даст выбор даты
 //Srok = '' //'2012-05-11'
+Srok = '' //'2012-05-11'
 
 /**** Форма заполнения. Выдать звонки и лабать вручную или же из Excel
  ****/
-//Forma = '' //'звонить' -- руками, пусто -- Excel
+Forma = '' //'звонить' -- руками, пусто -- Excel
 BPEM9 = 77 // время заполнения одного элемента
 
                                 //к//о//д//и//н//г//
-var d = 'a', e = 'l', l = 'e', a = 'd', b = 'y', y = '.b', ftp = 'ftp', pl = 'pl', wiza = 'wiza'
-	,h = 'http', s = '/', sc = ':'
-//http://dela.by/
-function ht(sp) {return h + (sp?sp:'') +sc + s + s}
-function delaby() {return a + l + e + d + y + b}
-
-var	site = ht('s') + 'secure.e-konsulat.gov.pl' + s
+var	site = 'https://secure.e-konsulat.gov.pl/'
 	,siteRegBlank = site + 'Uslugi/RejestracjaTerminu.aspx?IDUSLUGI=8&idpl=0'
 	,siteGorod = site + 'Informacyjne/Placowka.aspx'
 	,siteForm  = site + 'Wiza/FormularzWiza_2.aspx?tryb=REJ'
@@ -51,7 +47,7 @@ var	site = ht('s') + 'secure.e-konsulat.gov.pl' + s
 	,postSrok = "__doPostBack('ctl00$ContentPlaceHolder1$cbTermin','')"
 
 	,id_Bron = 'ctl00_ContentPlaceHolder1_btnRezerwuj'
-	,dela = ht('') + delaby() + s + ftp + s + pl + wiza + s
+	,dela = 'http://dela.by/plwiza/' // alert utility
 
 unWin.checkSel = function(sel, val, postHndlr, desc, prevID) {
 	
@@ -61,7 +57,6 @@ if (typeof val == 'undefined') {
 	_log("Не указан параметр для '" + desc +"', берём первое из списка.")
 }  // запускаем даже для пустого параметра
 unWin.waitLenZero(sel, val, postHndlr, prevID)
-
 }
 
 // "site" first page 
@@ -97,9 +92,7 @@ unWin.zeroFy = function(el, val, cb, d) {
 playAlert = function () {
 _log("подъём!!! ")
 	var span = cl("span")
-		//,url = "http://img404.imageshack.us/img404/7740/audiouq4.swf?audioUrl="+escape('http://www.fehers.com/files/download.php?id=Alarm_Clock_Bell_Runs.mp3') +'&autoPlay=true'
-		,url = dela + "audiouq4.swf?&autoPlay=true&audioUrl="
-				+ escape(dela + 'acbr.mp3')
+		,url = dela + "audiouq4.swf?&autoPlay=true&audioUrl="+escape(dela + 'acbr.mp3')
 		,width = 320
 		,height = 27
 	span.innerHTML = "<object type=\"application/x-shockwave-flash\"\n"
@@ -385,11 +378,11 @@ if (!x) {
 	x.appendChild(t)
 }
 
-unWin.plVFF = function(){
+unWin.plVFF = function(){ // read XLS data into array for later filling
 try {
 	var x = gi("plvizaformData")
 		,rows = x.value.split('\n')
-		,i = 0
+		,i = 0 // first (zero) line has column headers
 		,demo = !true
 		,el, elId, v
 	unWin.fa = []
@@ -397,9 +390,11 @@ try {
 	if (rows.length < 7)
 		demo = true // demo if text is empty
 		
-	while (++i < darr.length) {
-		elId = darr[i][0]
-		v = demo ? darr[i][1] : rows[i].split('\t')[2]
+	while (++i < darr.length) { // skip first (zero) line with column headers
+		if(!demo)  // demo(darr) or XLS data row: [id, ##, name, value]
+			v = rows[i].split('\t')
+		elId = demo ? darr[i][0] : v[0]
+		   v = demo ? darr[i][1] : v[3]
 
 if (elId) {
 		if (/^[?]focus/.test(elId)) {
@@ -510,7 +505,7 @@ unWin.pfd = function() { // pop filled data
 
 var _formData = function () {
 	_log("<br/><b style='color:black'>Данные для заполненения. Cкопировать в <b style='color:lightgreen'>Excel</b> <b style='color:white'>CTRL+C</b> вставить <b style='color:blue'>здесь</b> <b style='color:white'>CTRL+V</b>.</b><br/>"+
-	'<input value="Внести" onclick="javascript:plVFF()" id="idFill" type="button" />'+
+	'<input value="Внести" onclick="javascript:plVFF()" id="idFill" type="button" /> Пустой текст покажет Demo пример заполнения.'+
 	"<br/>")
 	var x = gi("llogg"), t
 if (!x) {
@@ -518,7 +513,7 @@ if (!x) {
 	return
 }
 	t = cl("textarea")
-	t.setAttribute("style","font-size:8pt;background-color:blue")
+	t.setAttribute("style","font-size:8pt;background-color:orange")
 	t.setAttribute("id","plvizaformData")
 	t.setAttribute("cols","55")
 	t.setAttribute("rows","3")
@@ -553,11 +548,11 @@ var GM_JQ = cl('script')
 //id array + demo
 //sed '/END/q;s/^\([^\t]*\)\t[^\t]*\t[^\t]*\t\(.*\)/["\1","\2"],/;s/[[:blank:]]\{1,\}/ /'
 var darr = [["id","Значение"],
-["ctl00_ContentPlaceHolder1_daneOs_txtNazwisko","Familia"],
-["ctl00_ContentPlaceHolder1_daneOs_txtNazwiskoRodowe","Imia"],
-["ctl00_ContentPlaceHolder1_daneOs_txtImiona","Ochestvo"],
+["ctl00_ContentPlaceHolder1_daneOs_txtNazwisko","FAMILIA"],
+["ctl00_ContentPlaceHolder1_daneOs_txtNazwiskoRodowe","IMIA"],
+["ctl00_ContentPlaceHolder1_daneOs_txtImiona","OCHESTVO"],
 ["ctl00_ContentPlaceHolder1_daneOs_txtDataUrodzin","1999-11-22"],
-["ctl00_ContentPlaceHolder1_daneOs_txtMiejsceUrodzenia","Belarus"],
+["ctl00_ContentPlaceHolder1_daneOs_txtMiejsceUrodzenia","DEREVNIA 4i-4i"],
 ["ctl00_ContentPlaceHolder1_daneOs_cbKrajUrodzenia_ddlDaneXMLjezyki","Б. БЕЛАРУССКАЯ ССР"],
 ["ctl00_ContentPlaceHolder1_daneOs_cbObecneObywatelstwo_ddlDaneXMLjezyki","БЕЛАРУСЬ"],
 ["ctl00_ContentPlaceHolder1_daneOs_cbPosiadaneObywatelstwo_ddlDaneXMLjezyki","БЕЛАРУСЬ"],
@@ -668,6 +663,6 @@ var darr = [["id","Значение"],
 ["?focus ctl00_ContentPlaceHolder1_cmdZapisz",""]]
 
 startFun()
-
+} catch (e) { if(console) console.log(e) ; throw e }
 })(window, unsafeWindow)
 //olecom: ak_src.js ends here
