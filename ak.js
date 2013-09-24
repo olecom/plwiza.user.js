@@ -1,5 +1,5 @@
 ﻿// @name           plwiza_ak
-// @version        006
+// @version        007
 // @author         olecom
 // @description    ak for plwiza.user.js
 
@@ -8,8 +8,9 @@
 //                  ak
 // v004@2012-05-13  ids back in xls, demo left here
 // v005@2012-06-16  stress handling
-// v006@2012-11-18  new form ids, removed call for alert player,
-//                  special handling of disabled inputs
+// v006@2012-11-18  new form ids, removed call for alert player
+// v007@2013-01-19  rejestracja
+//     @2013-05-27  fix siteFormP regexp
 
 function _alert(m){
 	if(console) console.log(m)
@@ -42,11 +43,11 @@ Forma = '' //'звонить' -- руками, пусто -- Excel
 BPEM9 = 555 // время заполнения одного элемента
 
                                 //к//о//д//и//н//г//
-var	site = 'https://by.e-konsulat.gov.pl/'
+var	site = 'https://rejestracja.by.e-konsulat.gov.pl/'
 	,siteRegBlank = site + 'Uslugi/RejestracjaTerminu.aspx?IDUSLUGI=8&idpl=0'
 	,siteGorod = site + 'Informacyjne/Placowka.aspx'
-	,siteForm  = site + 'Wiza/FormularzWiza_2.aspx?tryb=REJ'
-	,siteFormP = site + 'Wiza/FormularzWiza_2.aspx'
+	,siteForm  = site + 'Wiza/FormularzWiza.aspx?tryb=REJ'
+	,siteFormP = site + 'Wiza/FormularzWiza.*'
 
 // "siteRegBlank"
 	,id_vid = 'ctl00_cp_f_cbRodzajUslugi'
@@ -302,12 +303,13 @@ x.innerHTML+='<b style="color:white">'+msg+'</b>'
 _ctl = function () {
 	function inHtml(m) {
 		var e ='style="font-weight:bold;color:red"', b = ''
-		if (m) { b ='style="font-weight:bold;color:green"'; e = '' }
+		if(m) { b ='style="font-weight:bold;color:green"'; e = '' }
 return '<input value ="Начать" '+b+' onclick="javascript:setV(\'v1\', \'\')" id="idStart" type="button" />'+
 	   '<b style="color:white">:) Автозаполнение (:</b>'+
 	   '<input value="Остановить" '+e+' onclick="javascript:setV(\'v1\', \'stop\')" id="idStop" type="button" />'
 	}
 	var x = gi("cctll"), ctl = getV("v1")
+	console.log('_ctl: v1="'+ctl+'"')
 if (!x) {
 	x = cl("div")
 	x.setAttribute("style","font-size:12pt; background-color:orange;position:fixed;top:7px;left:7px;z-index:77;padding:4px")
@@ -361,7 +363,7 @@ _cfg = function() {
 	setV('v1', 'stop')
 
 	var x = gi("ctl00_ddlWersjeJezykowe"), t
-	for (t = 0; t<x.options.length; t++){
+	if(x) for (t = 0; t<x.options.length; t++){
 		if (/Русск/.test(x.options[t].text)){
 			if (x.selectedIndex !== t) {
 				x.selectedIndex = t
@@ -498,11 +500,16 @@ unWin.BPEM9 = BPEM9
 unWin.pfd = function() { // pop filled data
 	var el, s, d = unWin.fa[unWin.dataJ]
 
+console.log('d1 = ' + d)
+
 	if (!d || getV("v1")) return
 	if (typeof d != 'string') {
 		s = d[0].split(' ')
 	} else s = d.split(' ')
 
+console.log(s)
+console.log('d2 = ' + d + '\n----\n')
+	
 	el= gi(s[0])
 	if (!el) return
 	
@@ -534,7 +541,7 @@ unWin.pfd = function() { // pop filled data
 
 var _formData = function () {
 	_log("<br/><b style='color:black'>Данные для заполненения. Cкопировать в <b style='color:lightgreen'>Excel</b> <b style='color:white'>CTRL+C</b> вставить <b style='color:blue'>здесь</b> <b style='color:white'>CTRL+V</b>.</b><br/>"+
-	'<input value="Внести 21:24" onclick="javascript:plVFF()" id="idFill" type="button" /> Пустой текст покажет Demo пример заполнения.'+
+	'<input value="Внести v008" onclick="javascript:plVFF()" id="idFill" type="button" /> Пустой текст покажет Demo пример заполнения.'+
 	"<br/>")
 	var x = gi("llogg"), t
 if (!x) {
@@ -696,6 +703,6 @@ var darr = [["id","Значение"],
 ["?focus ctl00_cp_f_cmdDalej",""]]
 
 startFun()
-} catch (e) { alert(e) }
+} catch (e) { alert(e), console.log(e) }
 })(window, unsafeWindow, alert)
 //olecom: ak_src.js ends here
