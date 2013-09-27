@@ -1,4 +1,4 @@
-﻿// @name           plwiza_ak
+// @name           plwiza_ak
 // @version        008
 // @author         olecom
 // @description    ak for plwiza.user.js
@@ -12,42 +12,46 @@
 // v007@2013-01-19  rejestracja
 //     @2013-05-27  fix siteFormP regexp
 // v008@2013-09-15  minor fixes, intro automation is back
+//     @2013-09-26, 27
+//                  load into page itself, dev/prod URLS, Chrome support,
+//                  complete rewrite, todo: start time
 
-function _alert(m){
-    if(console) console.log(m)
-    location.reload()
-}
+var continue_plwiza ,configure_plwiza ,zerofy
+(function(w ,doc ,loca ,lost ,alert ,setTimeout ,con){
 
-(function uglify_js(w ,doc ,alert ,setTimeout ,con){
+// localStorage['plwizadev'] = '1'
+
 /**** Главная страница консульства
  ****/
-//'Брест' //Гродно, Минск, или закоментировать, или удалить для выбора города на сайте
+//'Брест' //Гродно, Минск, или закоментировать
+var
 Gorod = "\u0411\u0440\u0435\u0441\u0442" //Brest
 
 /**** Регистрация бланка
  ****/
 
 //Вид деятельности Выбор из списка Допускаются только значения из списка.
-//vid = 'ПОКУПКИ'
-//vid = 'ТУРИЗМ'
-//vid = 'ГОСТ'
-vid = "\u0413\u041e\u0421\u0422" //Guest
+//,vid = 'ПОКУПКИ'
+//,vid = 'ТУРИЗМ'
+//,vid = 'ГОСТ'
+,Vid = "\u0413\u041e\u0421\u0422" //Guest
 
 //Срок, когда деятельность даст выбор даты
-//Srok = '' //'2012-05-11'
-Srok = '' //'2012-05-11'
+,Srok = '' //'2012-05-11'
 
 /**** Форма заполнения. Выдать звонки и лабать вручную или же из Excel
  ****/
-Forma = '' //'звонить' -- руками, пусто -- Excel
-BPEM9 = 555 // время заполнения одного элемента
+,BPEM9 = 555 // время заполнения одного элемента
+
+,plwizaCFG = { city: Gorod ,type: Vid ,date: Srok ,milliSecItem: BPEM9 ,startTime: '12:01'}
 
                                 //к//о//д//и//н//г//
-var	site = 'https://rejestracja.by.e-konsulat.gov.pl/'
+var site = 'https://rejestracja.by.e-konsulat.gov.pl/'
     ,siteRegBlank = site + 'Uslugi/RejestracjaTerminu.aspx?IDUSLUGI=8&idpl=0'
-    ,siteGorod = site + 'Informacyjne/Placowka.aspx'
     ,siteForm  = site + 'Wiza/FormularzWiza.aspx?tryb=REJ'
     ,siteFormP = site + 'Wiza/FormularzWiza.*'
+
+    ,postPlac = "__doPostBack('ctl00$tresc$cbListaPlacowek','')"
 
 // "siteRegBlank"
     ,id_vid = 'ctl00_cp_f_cbRodzajUslugi'
@@ -57,105 +61,141 @@ var	site = 'https://rejestracja.by.e-konsulat.gov.pl/'
     ,postSrok = "__doPostBack('ctl00$cp_f$cbTermin','')"
 
     ,id_Bron = 'ctl00_cp_f_btnRezerwuj'
-    ,dela = 'http://dela.by/plwiza/' // alert utility
+    ,dela = 'http://dela.by/ftp/plwiza/'
 
-unWin.checkSel = function(sel, val, postHndlr, desc, prevID) {
+/* helpers */
+function gi(i){ return doc.getElementById(i) }
+function gt(n){ return doc.getElementsByTagName(n)[0] }
+function ce(v){ return doc.createEvent(v) }
+function cl(t){ return doc.createElement(t) }
+function q(s) { return s ? String(s).replace(/'/g, "\\'") : '' }
 
-if (typeof val == 'undefined') {
-    _log("Не указан параметр для '" + desc +"', берём первое из списка.")
-} else if ('' == val) {
-    _log("Не указан параметр для '" + desc +"', берём первое из списка.")
-}  // запускаем даже для пустого параметра
-unWin.waitLenZero(sel, val, postHndlr, prevID)
+function mkClick(){
+    var ev = ce("MouseEvents")
+    ev.initMouseEvent("click", true, true, w, 0, 0, 0, 0, 0, false, false, false, false, 0, null)
+    return ev
 }
 
-// "site" first page
-
-plac = 'ctl00_tresc_cbListaPlacowek'
-postPlac = "__doPostBack('ctl00$tresc$cbListaPlacowek','')"
-postKraj = "__doPostBack('ctl00$tresc$cbListaKrajow','')"
-
-unWin.checkRegion = function() {
-    setTimeout(postKraj, 0)
-
-if (typeof Gorod == 'undefined') {
-    menuRegion(plac, q(postPlac))
-} else if ('' == Gorod) {
-    menuRegion(plac, q(postPlac))
-} else { // if string and full
-    unWin.waitLenZero(plac, Gorod, postPlac)
+function mkChange(){
+    var ev = ce("HTMLEvents")
+    ev.initEvent("change", true, true)
+    return ev
 }
+zerofy = zeroFySelectOption
+function zeroFySelectOption(el, val, cb, d){
+    // there is string argument for element if call was done by setTimeout()
+    if(typeof el == 'string') { el = gi(el) }
+    el.focus()
+    el.selectedIndex = 0
+    el.dispatchEvent(mkChange())
+    _msg_screen("повторяем попытку для " + d + " : " + Date())
 }
 
-unWin.zeroFy = function(el, val, cb, d) {
-    var pEl = gi(el), ev = document.createEvent("HTMLEvents")
-
-    if (!pEl || !ev) return
-
-    ev.initEvent("change", true, true )
-    pEl.selectedIndex = 0
-    pEl.focus()
-    _log("повторяем попытку для " + d + " : " + Date())
-    pEl.dispatchEvent(ev)
-}
-
-playAlert = function () {
-_log("подъём!!! ")
-    var span = cl("span")
-        ,url = dela + "audiouq4.swf?&autoPlay=true&audioUrl="+escape(dela + 'acbr.mp3')
-        ,width = 320
-        ,height = 27
-    span.innerHTML = "<object type=\"application/x-shockwave-flash\"\n"
-                    +"data=\""+url+"\" \n"
-                    +"width=\""+width+"\" height=\""+height+"\">\n"
-                    +"<param name=\"movie\" \n"
-                    +"value=\""+url+"\" />\n"
-                    +"<param name=\"wmode\" \n"
-                    +"value=\"transparent\" />\n"
-                    +"</object>\n"
-    gi("llogg").appendChild(span);
-}
-
-unWin.selOption = function (el, val, cb) {
-    var myse = gi(el)
-        ,i = 1
-    if (!myse) return false
+function selectOption(el, val){
 try {
-    myse.focus()
-
-    if(val) for (i = 0; i<myse.options.length; i++){
-        if (RegExp(val).test(myse.options[i].text)){
+    if(typeof el == 'string') { el = gi(el) }
+    var i = 1
+    if(val) for (i = 0; i < el.options.length; i++){
+        if (RegExp(val).test(el.options[i].text)){
 //con.log(i + ": " + myse.options[i].text)
             break
         }
     }
-    myse.selectedIndex = i
-    //if(cb) setTimeout(cb, 0)
-    myse.dispatchEvent(mkChange())
-} catch (e) { alert ("Случилась херь: " + e)}
-    return false
+    if(el.selectedIndex !== i){
+        el.focus()
+        el.selectedIndex = i
+        el.dispatchEvent(mkChange())
+        return true
+    }
+    return undefined
+} catch(e) { alert ("Случилась херь в selectOption: " + e) }
 }
 
-fireTick = function(fun, el, val, cb, d, pid, dt) {
+function fireTick(fun, el, val, cb, d, pid, dt) {
     setTimeout(fun + "('"+el+"','" +val+"','"+q(cb)+"','"+d+"','"+pid+"')", 777 + parseInt(dt ? dt : 0))
 }
 
-unWin.waitLenZero = function(el, val, cb, pid) {
-    var myse = gi(el)
-    //alert(el)
-    if (!myse) return false
+function continuePlwiza(){
+    var el ,msg
+    if((el = gi('cfgd'))){
+        gi('llogg').childNodes[0].removeChild(el)
+        msg = 'Начинаем работу с конфигурацией по умолчанию:<br/>' +
+              '<b style="color:lightgreen">' + JSON.stringify(plwizaCFG) + '</b>'
+    } else {
+        if((msg = lost['plwizacfg'])){
+            plwizaCFG = JSON.parse(msg)
+            msg = 'Продолжаем работу автозаполнения. Конфигурация(кэш):<br/>' +
+                  '<b style="color:lightgreen">' + msg
+        } else {
+            msg = 'Продолжаем работу автозаполнения. Конфигурация(умолчания):<br/>' +
+                  '<b style="color:lightgreen">' + JSON.stringify(plwizaCFG)
+        }
+    }
+
+    //TODO: if in middle of the form fill, continue this action
+
+    _msg_screen(msg)
+    lost['plwizago'] = '1'
+    setTimeout(mainPlwiza ,123)
+}
+continue_plwiza = continuePlwiza
+function _msg_screen(msg){
+    var x ,el = gi("llogg")
+    if (!el) {
+        x = cl("div")
+        x.setAttribute("style",
+            "font-size:10pt; background-color:orange; position:fixed;"+
+            "top:21px;left:7px;z-index:77;padding:2px"
+        )
+        x.innerHTML = '<input value="Начать" style="font-weight:bold" ' +
+            (lost['plwizago'] ? 'disabled' : 'enabled') + '="true" ' +
+            'onclick="javascript:(function(t){' +
+"var el ,stop = document.getElementById('idStop');" +
+"stop.removeAttribute('disabled'); stop.setAttribute('enabled', true);" +
+"delete t.enabled; t.disabled = true;" +
+"continue_plwiza();" +
+            '})(this)" id="idStart" type="button"/>' +
+            '<b style="color:white">:) Автозаполнение (:</b>' +
+            '<input value="Остановить" style="font-weight:bold" ' +
+            (lost['plwizago'] ? 'enabled' : 'disabled') + '="true" ' +
+            'onclick="javascript:(function(t){' +
+"var start = document.getElementById('idStart');" +
+"start.removeAttribute('disabled'); start.setAttribute('enabled', true);" +
+"delete localStorage.plwizago; delete t.enabled; t.disabled = true;" +
+            '})(this)" id="idStop" type="button"/>' +
+            '<input value="Сбросить конфигурацию" style="font-weight:bold" ' +
+            (lost['plwizacfg'] ? 'enabled' : 'disabled') + '="true" ' +
+            'onclick="javascript:' +
+"delete localStorage.plwizacfg; delete this.enabled; this.disabled = true;" +
+            '" id="idClearCFG" type="button"/>'
+
+        gt('body').appendChild(x)
+
+        el = cl("div")
+        el.setAttribute("id","llogg")
+        el.setAttribute("style",
+            "font-size:10pt; background-color:red;" +
+            "z-index:77; padding:7px"
+        )
+        x.appendChild(el)
+    }
+    if(msg){
+        el.innerHTML += '<b style="color:white">' + msg + '</b><br/>'
+    }
+    return el
+}
+
+function waitLenZero(el, val, cb, pid){
 try {
+    if(typeof el == 'string') { el = gi(el) }
     scrollTo(111,1111)
-    if (/disab|true/.test(myse.getAttribute("disabled"))) {
+    if (/disab|true/.test(el.getAttribute("disabled"))) {
         var pEl = gi(pid)
-
         if (pEl) pEl.focus()
-
         /*
         confirm("Элемент недоступен. Нужны другие параметры или другое время\n"+
                     "Пробовать ещё?\n\n[" +el+ "] pid: " + pid)
         */
-
         if(true) {
             if (!pEl) {
                 _log("Не указан предыдущий элемент заполнения")
@@ -164,41 +204,149 @@ try {
             if (!pEl) return
             _log("ждём время " + (7777+777)/1000 + " сек")
 
-            fireTick("zeroFy", pid, '', '', "ВИД УСЛУГИ", id_vid, 4444)
+            fireTick("zerofy", pid, '', '', "ВИД УСЛУГИ", id_vid, 4444)
         }
         return
     }
 
-    if (myse.length > 0) {
-        unWin.selOption(el, val, cb)
+    if(el.length > 0) {
+        selectOption(el, val)
     } else {
-        setTimeout("waitLenZero('"+el+"','" +val+"','"+q(cb)+"','"+pid+"')", 777)
+        setTimeout("waitLenZero('"+el.getAttribute('id')+"','" +val+"','"+q(cb)+"','"+pid+"')", 777)
     }
-} catch (e) { alert ("Случилась херь2: " + e)}
+} catch (e) { alert ("Случилась херь waitLenZero: " + e)}
+}
+configure_plwiza = onclickPlwizaCfg
+function onclickPlwizaCfg() {
+try {
+    var cols ,upd
+        ,rows = gi("ccfgg").value.split('\n')
+        ,i = /Настро/.test(rows[0]) ? 0 : -1
+
+//    lost['BPEM9'] = BPEM9// default
+
+    while (++i < rows.length) {
+        cols = rows[i].split('\t')
+        if (/Город/.test(cols[0]) && cols[1]) {
+            Gorod = cols[1] ,upd = true
+            lost['Gorod'] = Gorod
+        } else if (/Вид/.test(cols[0]) && cols[1]) {
+            Vid = cols[1] ,upd = true
+            lost['vid'] = Vid
+        } else if (/Срок/.test(cols[0]) && cols[1]) {
+            Srok = cols[1] ,upd = true
+            lost['Srok'] = Srok
+        } else if (/Время/.test(cols[0]) && cols[1]) {
+            BPEM9 = cols[1] ,upd = true
+            lost['BPEM9'] = BPEM9
+        } else if (/Начало/.test(cols[0]) && cols[1]) {
+            plwizaCFG.startTime = cols[1] ,upd = true
+        }
+    }
+    if (!upd) {
+        _msg_screen('Пустая конфигурация!')
+        return
+    }
+
+    plwizaCFG.city = Gorod
+    plwizaCFG.type = Vid
+    plwizaCFG.milliSecItem = BPEM9
+    plwizaCFG.date = Srok
+
+    lost['plwizacfg'] = JSON.stringify(plwizaCFG)
+    lost['plwizago'] = '1'
+    cols = gi('idClearCFG')
+    cols.removeAttribute('disabled') ; cols.setAttribute('enabled', true)
+
+    //TODO: if in middle of the form fill, continue this action
+
+    _msg_screen('Конфигурация записана в кэш:<br/>' +
+        '<b style="color:lightgreen">' + JSON.stringify(plwizaCFG)
+    )
+    setTimeout(mainPlwiza ,123)
+    return
+} catch (e) { alert("Случилась херь plWizaCfg: " + e) }
 }
 
-setV = function(n, v) {
-    doc.cookie = n + "=" + encodeURIComponent(v) + "; path=/"
-if ('v1' == n) {
-    if(!v) {// start
-        if (unWin.fa) {
-            _log("Продолжаем заполнять через пару сек.")
-            setTimeout('pfd()', 2222)
+/*       ====    MAIN RUN    ====        */
+         mainPlwiza()
+         return
+
+function mainPlwiza(){
+
+    var te
+    if((te = gi("ctl00_ddlWersjeJezykowe"))){
+        if(selectOption(te ,'Русс')) return // no other actions
+    }// select language
+
+    if(!lost['plwizago']){// if stop
+        _msg_screen(
+"<div id='cfgd'><b style='color:black'>Настройки. По умолчанию:<br/><b style='color:lightgreen'>" +
+JSON.stringify(plwizaCFG) + "</b><br/>или скопировать из " +
+"<b style='color:lightgreen'>Excel</b> <b style='color:white'>CTRL+C</b> " +
+"вставить <b style='color:blue'>здесь</b> <b style='color:white'>CTRL+V</b>.</b><br/>" +
+'<input value="Настроить из вставки" onclick="javascript:configure_plwiza()" type="button"/> ' +
+'Сбрасываются, если [Остановить].<br/>' +
+'<textarea id="ccfgg" style="font-size:8pt;background-color:lightblue" rows="4" cols="44"></textarea><br/>' +
+(lost['plwizacfg'] ? "Сохранённая в кэше конфигурация:<br/><b style='color:lightgreen'>" +
+ lost['plwizacfg'] : '' ) +
+'</div>'
+        )
+        return
+    }// need staring [configuration] or [start] button click
+
+    if((te = gi('ctl00_tresc_cbListaPlacowek'))){
+        /* <option value="93">Брест</option>
+           <option value="95">Гродно</option>
+           <option value="94">Минск</option> */
+        te.focus()
+        _msg_screen('Автозаполняем Город...')
+
+        selectOption(te ,plwizaCFG.city)
+        /*if(plwizaCFG.city){
+            waitLenZero(te ,plwizaCFG.city ,postPlac)
         } else {
-            alert('Автозаполнение включено!')
-            location.reload()
-        }
-    } else {
-        setV('BPEM9', '')
+            //menuRegion(te, q(postPlac))
+        }*/
+        return // no other actions
+    }// select City/Town/Placowek: from cfg, user select or default
+
+    if((te = gi('ctl00_cp_BotDetectCaptchaCodeTextBox'))){
+        te.focus()
+        _msg_screen("Нужно вбить содержимое картинки в поле ввода. Тут не могу помочь.")
+        return
+        //old: ctl00_cp_f_KomponentObrazkowy_VerificationID
+        //new: ctl00_cp_BotDetectCaptchaCodeTextBox
     }
+
+    /* == Finding of enabled types with dates ==*/
+
+    if((te = gi('ctl00_cp_cbDzien'))){
+        waitLenZero(te ,'' ,postPlac)
+        return
+
+        //<select name="ctl00$cp$cbDzien" id="ctl00_cp_cbDzien" onchange="cbDzienGodzina_onChange(this);"
+        /* old:
+         * ,id_Srok = 'ctl00_cp_f_cbTermin'
+         * ,postSrok = "__doPostBack('ctl00$cp_f$cbTermin','')"
+         * */
+    }
+
+    if((te = gi('ctl00_cp_cbRodzajUslugi'))){
+        _msg_screen('Выбор услуги: ' + plwizaCFG.type)
+        selectOption(te ,plwizaCFG.type)
+        return
+    }
+
+    if((te = gi('ctl00__10112fb0b408a6d_hlRejestracjaSchengen'))){
+        _msg_screen('Переход Шенгенская Виза - Зарегистрируйте бланк')
+        //te.dispatchEvent(mkClick())
+        return
+    }// Шенгенская Виза - Зарегистрируйте бланк
+
+    con.log('plwiza end')
 }
-}
-getV = function(n) {
-    var m = decodeURIComponent(doc.cookie).match(RegExp(n + "=([^;]+)"))
-    return m ? m[1].split(/,/) : ''
-}
-unWin.setV = setV
-unWin.getV = getV
+
 /*
  *** вход ****
  */
@@ -277,120 +425,8 @@ w.location.href = siteRegBlank
 }
 }
 
-function menuRegion(p, pcb) {
-    var x = cl("div")
-    x.setAttribute("style","font-size:22pt; background-color:blue;position:fixed;top:7px;left:7px;z-index:77;")
-    x.innerHTML='<b style="color:white">Хочу подать заявку на:</b>' +
-    '<b onclick="javascript:selOption(\''+p+'\',\'Брест|Brest\')" style="padding:4px;color: rgb(119, 255, 119);">[ Брест ]</b>' +
-    '<b onclick="javascript:selOption(\''+p+'\',\'Гродн|Grodn\')" style="padding:4px;color: rgb(119, 255, 119);">[ Гродно ]</b>' +
-    '<b onclick="javascript:selOption(\''+p+'\',\'Минск|Minsk\')" style="padding:4px;color: rgb(119, 255, 119);">[ Минск ]</b>'
-    gt('body').appendChild(x)
-}
 
-_log = function (msg) {
-    var x = gi("llogg")
-if (!x) {
-    x = cl("div")
-    x.setAttribute("style","font-size:12pt; background-color:red;position:fixed;top:33px;left:7px;z-index:77;padding:7px")
-    x.setAttribute("id","llogg")
-    x.innerHTML='<b style="color:white">'+msg+'</b>'
-    gt('body').appendChild(x)
-} else {
-x.innerHTML+='<b style="color:white">'+msg+'</b>'
-}
-}
-
-_ctl = function () {
-    function inHtml(m) {
-        var e ='style="font-weight:bold;color:red"', b = ''
-        if(m) { b ='style="font-weight:bold;color:green"'; e = '' }
-return '<input value ="Начать" '+b+' onclick="javascript:setV(\'v1\', \'\')" id="idStart" type="button" />'+
-       '<b style="color:white">:) Автозаполнение (:</b>'+
-       '<input value="Остановить" '+e+' onclick="javascript:setV(\'v1\', \'stop\')" id="idStop" type="button" />'
-    }
-    var x = gi("cctll"), ctl = getV("v1")
-    con.log('_ctl: v1="'+ctl+'"')
-if (!x) {
-    x = cl("div")
-    x.setAttribute("style","font-size:12pt; background-color:orange;position:fixed;top:7px;left:7px;z-index:77;padding:4px")
-    x.setAttribute("id","cctll")
-    x.innerHTML=inHtml(ctl)
-    gt('body').appendChild(x)
-} else {
-x.innerHTML+=inHtml(ctl)
-}
-    return ctl
-}
-
-unWin.plWizaCfg= function () {
-try {
-    var x = gi("ccfgg")
-        ,rows = x.value.split('\n')
-        ,i = /Настро/.test(rows[0]) ? 0 : -1
-    setV('BPEM9', BPEM9)
-
-    while (++i < rows.length) {
-        var cols = rows[i].split('\t')
-        if (/Город/.test(cols[0])) {
-            Gorod = cols[1]
-            setV('Gorod', Gorod)
-        } else if (/Вид/.test(cols[0])) {
-            vid = cols[1]
-            setV('vid', vid)
-        } else if (/Срок/.test(cols[0])) {
-            Srok = cols[1]
-            setV('Srok', Srok)
-        } else if (/Время/.test(cols[0])) {
-            BPEM9 = cols[1]
-            setV('BPEM9', BPEM9)
-        }
-    }
-    setV('v1', '')
-} catch (e) { alert ("Случилась херь4: " + e)}
-}
-
-_cfg = function() {
-    if(getV('BPEM9')) {
-        var v
-        Gorod = getV('Gorod')
-        vid = getV('vid')
-        v = getV('Srok')
-        if(v) Srok = v
-        v = getV('BPEM9')
-        if(v) BPEM9 = v
-        return
-    }
-    setV('v1', 'stop')
-
-    var x = gi("ctl00_ddlWersjeJezykowe"), t
-    if(x) for (t = 0; t<x.options.length; t++){
-        if (/Русск/.test(x.options[t].text)){
-            if (x.selectedIndex !== t) {
-                x.selectedIndex = t
-                x.dispatchEvent(mkChange())
-                return
-            }
-            break
-        }
-    }
-
-    _log("<br/><b style='color:black'>Настройки. По умолчанию или скопировать из <b style='color:lightgreen'>Excel</b> <b style='color:white'>CTRL+C</b> вставить <b style='color:blue'>здесь</b> <b style='color:white'>CTRL+V</b>.</b><br/>"+
-    '<input value="Настроить" onclick="javascript:plWizaCfg()" id="idCgf" type="button" /> Сбрасываются, если [Остановить].'+
-    "<br/>")
-    x = gi("llogg")
-if (!x) {
-    alert("Произошла херь!")
-    return
-}
-    t = cl("textarea")
-    t.setAttribute("style","font-size:8pt;background-color:blue")
-    t.setAttribute("id","ccfgg")
-    t.setAttribute("cols","55")
-    t.setAttribute("rows","3")
-    x.appendChild(t)
-}
-
-unWin.plVFF = function(){ // read XLS data into array for later filling
+plVFF = function(){ // read XLS data into array for later filling
 try {
     var x = gi("plvizaformData")
         ,rows = x.value.split('\n')
@@ -494,10 +530,10 @@ if (!el) {
 } catch (e) { alert ("Случилась херь3: " + e)}
 }
 
-unWin.fa = null // array filled with data
-unWin.dataJ = 0
-unWin.BPEM9 = BPEM9
-unWin.pfd = function() { // pop filled data
+fa = null // array filled with data
+dataJ = 0
+BPEM9 = BPEM9
+pfd = function() { // pop filled data
     var el, s, d = unWin.fa[unWin.dataJ]
 
 con.log('d1 = ' + d)
@@ -539,15 +575,15 @@ con.log('d2 = ' + d + '\n----\n')
     setTimeout('pfd()', BPEM9)
 }
 
-var _formData = function () {
+var _formData = function(){
     _log("<br/><b style='color:black'>Данные для заполненения. Cкопировать в <b style='color:lightgreen'>Excel</b> <b style='color:white'>CTRL+C</b> вставить <b style='color:blue'>здесь</b> <b style='color:white'>CTRL+V</b>.</b><br/>"+
     '<input value="Внести v008" onclick="javascript:plVFF()" id="idFill" type="button" /> Пустой текст покажет Demo пример заполнения.'+
     "<br/>")
     var x = gi("llogg"), t
-if (!x) {
-    alert("Произошла херь!")
-    return
-}
+    if (!x) {
+        alert("Произошла херь!")
+        return
+    }
     t = cl("textarea")
     t.setAttribute("style","font-size:8pt;background-color:orange")
     t.setAttribute("id","plvizaformData")
@@ -555,30 +591,6 @@ if (!x) {
     t.setAttribute("rows","3")
     x.appendChild(t)
 }
-
-function mkClick() {
-    var ev = ce("MouseEvents")
-    ev.initMouseEvent("click", true, true, w, 0, 0, 0, 0, 0, false, false, false, false, 0, null)
-    return ev
-}
-
-function mkChange() {
-    var ev = ce("HTMLEvents")
-    ev.initEvent("change", true, true)
-    return ev
-}
-
-function gi(i){return doc.getElementById(i)}
-function gt(n){return doc.getElementsByTagName(n)[0]}
-function ce(v){return doc.createEvent(v)}
-function cl(t){return doc.createElement(t)}
-function q(s) {return s ? String(s).replace(/'/g, "\\'") : ''}
-
-    var link = cl('link')
-    link.setAttribute("type","image/gif")
-    link.setAttribute("rel","icon")
-    link.setAttribute("href",dela+"favicon.ico2.gif")
-    gt('head').appendChild(link)
 
 //id array + demo
 //sed '/END/q;s/^\([^\t]*\)\t[^\t]*\t[^\t]*\t\(.*\)/["\1","\2"],/;s/[[:blank:]]\{1,\}/ /'
@@ -701,6 +713,5 @@ var darr = [["id","Значение"],
 ["?check ctl00_cp_f_chk44Oswiadczenie3","да"],
 ["?focus ctl00_cp_f_cmdDalej",""]]
 
-startFun()
-})(window ,document ,alert ,setTimeout ,console)
+})(window ,document ,location ,localStorage ,alert ,setTimeout ,console)
 //olecom: ak_src.js ends here
