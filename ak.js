@@ -207,7 +207,7 @@ try {
     var cols ,upd
         ,rows = gi("ccfgg").value.split('\n')
         ,i = /Настро/.test(rows[0]) ? 0 : -1
-
+    plwizaCFG.startTime = ''
     while (++i < rows.length) {
         cols = rows[i].split('\t')
         if (/Город/.test(cols[0]) && cols[1]) {
@@ -277,6 +277,7 @@ JSON.stringify(plwizaCFG) + "</b><br/>или скопировать из " +
         try { gi('ctl00_cp_BotDetectCaptchaCodeTextBox').focus() } catch (e) { }
         return
     }// need staring [configuration] or [start] button click
+    if((te = lost['plwizacfg'])) plwizaCFG = JSON.parse(te)
 
     if((te = gi('ctl00_tresc_cbListaPlacowek'))){
         /* <option value="93">Брест</option>
@@ -326,10 +327,11 @@ JSON.stringify(plwizaCFG) + "</b><br/>или скопировать из " +
 
     if((te = gi('ctl00_cp_cbRodzajUslugi'))){
         _msg_screen(
-            'Выбор услуги: ' + plwizaCFG.type +
+            'Выбор услуги: ' + plwizaCFG.type + (plwizaCFG.startTime ?
             ' начало в ' + plwizaCFG.startTime +
-            ', сейчас: <b id="startTime" style="color:lightblue"></b>'
+            ', сейчас: <b id="startTime" style="color:lightblue"></b>' : '')
         )
+        scrollTo(111,1111)
 
         if(plwizaCFG.startTime){
             // "12:01".slice(3)  -> 01
@@ -353,7 +355,6 @@ JSON.stringify(plwizaCFG) + "</b><br/>или скопировать из " +
             return
         }
         selectOption(te ,plwizaCFG.type)
-        scrollTo(111,1111)
         return
     }// select type
 
