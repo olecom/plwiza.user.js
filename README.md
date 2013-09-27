@@ -1,7 +1,11 @@
-plwiza.user.js
-==============
+# About plwiza.user.js
 
-Automatic form filling bot/userscript for [by.]e-konsulat.gov.pl in Firefox
+Automatic form filling bot/userscript for [by.]e-konsulat.gov.pl in Chrome and Firefox
+
+# Browsers Supported
+
+* Chrome (v0.8+)
+* Firefox + Scriptish or Greasemonkey plugin (v0.7+)
 
 
 О заполнении заявок на получение визы
