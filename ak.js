@@ -14,36 +14,20 @@
 // v008@2013-09-15  minor fixes, intro automation is back
 //     @2013-09-26, 27
 //                  load into page itself, dev/prod URLS, Chrome support,
-//                  complete rewrite, todo: start time
+//                  complete rewrite, start time
 
 var continue_plwiza ,configure_plwiza ,zerofy
-(function(w ,doc ,loca ,lost ,alert ,setTimeout ,con){
+(function(w ,doc ,lost ,alert ,setTimeout ,con){
+//devel: localStorage['plwizadev'] = '1'
 
-// localStorage['plwizadev'] = '1'
-
-/**** Главная страница консульства
- ****/
-//'Брест' //Гродно, Минск, или закоментировать
-var
-Gorod = "\u0411\u0440\u0435\u0441\u0442" //Brest
-
-/**** Регистрация бланка
- ****/
-
-//Вид деятельности Выбор из списка Допускаются только значения из списка.
-//,vid = 'ПОКУПКИ'
-//,vid = 'ТУРИЗМ'
-//,vid = 'ГОСТ'
-,Vid = "\u0413\u041e\u0421\u0422" //Guest
-
-//Срок, когда деятельность даст выбор даты
-,Srok = '' //'2012-05-11'
-
-/**** Форма заполнения. Выдать звонки и лабать вручную или же из Excel
- ****/
-,BPEM9 = 555 // время заполнения одного элемента
-
-,plwizaCFG = { city: Gorod ,type: Vid ,date: Srok ,milliSecItem: BPEM9 ,startTime: '12:01'}
+var ver = 'v008'
+,Gorod = 'Брест'
+,Vid = 'ПОКУПКИ' //'ПОКУПКИ', 'ГОСТ'....
+,Srok = ''       //'2012-05-11'
+,BPEM9 = 555     /* время заполнения одного элемента */
+,plwizaCFG = {
+    city: Gorod ,type: Vid ,date: Srok ,milliSecItem: BPEM9 ,startTime: '12:01'
+}
 
                                 //к//о//д//и//н//г//
 var site = 'https://rejestracja.by.e-konsulat.gov.pl/'
@@ -66,6 +50,7 @@ var site = 'https://rejestracja.by.e-konsulat.gov.pl/'
 /* helpers */
 function gi(i){ return doc.getElementById(i) }
 function gt(n){ return doc.getElementsByTagName(n)[0] }
+function gs(n){ return doc.getElementsByTagName(n) }
 function ce(v){ return doc.createEvent(v) }
 function cl(t){ return doc.createElement(t) }
 function q(s) { return s ? String(s).replace(/'/g, "\\'") : '' }
@@ -155,7 +140,7 @@ function _msg_screen(msg){
 "delete t.enabled; t.disabled = true;" +
 "continue_plwiza();" +
             '})(this)" id="idStart" type="button"/>' +
-            '<b style="color:white">:) Автозаполнение (:</b>' +
+            '<b style="color:white">:) Автозаполнение ' + ver + '(:</b>' +
             '<input value="Остановить" style="font-weight:bold" ' +
             (lost['plwizago'] ? 'enabled' : 'disabled') + '="true" ' +
             'onclick="javascript:(function(t){' +
@@ -223,8 +208,6 @@ try {
         ,rows = gi("ccfgg").value.split('\n')
         ,i = /Настро/.test(rows[0]) ? 0 : -1
 
-//    lost['BPEM9'] = BPEM9// default
-
     while (++i < rows.length) {
         cols = rows[i].split('\t')
         if (/Город/.test(cols[0]) && cols[1]) {
@@ -274,7 +257,7 @@ try {
 
 function mainPlwiza(){
 
-    var te
+    var te ,i
     if((te = gi("ctl00_ddlWersjeJezykowe"))){
         if(selectOption(te ,'Русс')) return // no other actions
     }// select language
@@ -284,14 +267,14 @@ function mainPlwiza(){
 "<div id='cfgd'><b style='color:black'>Настройки. По умолчанию:<br/><b style='color:lightgreen'>" +
 JSON.stringify(plwizaCFG) + "</b><br/>или скопировать из " +
 "<b style='color:lightgreen'>Excel</b> <b style='color:white'>CTRL+C</b> " +
-"вставить <b style='color:blue'>здесь</b> <b style='color:white'>CTRL+V</b>.</b><br/>" +
+"вставить <b style='color:blue'>здесь</b> <b style='color:white'>CTRL+V</b>:</b><br/>" +
+'<textarea id="ccfgg" style="font-size:8pt;background-color:lightblue" rows="4" cols="77"></textarea><br/>' +
 '<input value="Настроить из вставки" onclick="javascript:configure_plwiza()" type="button"/> ' +
-'Сбрасываются, если [Остановить].<br/>' +
-'<textarea id="ccfgg" style="font-size:8pt;background-color:lightblue" rows="4" cols="44"></textarea><br/>' +
 (lost['plwizacfg'] ? "Сохранённая в кэше конфигурация:<br/><b style='color:lightgreen'>" +
  lost['plwizacfg'] : '' ) +
 '</div>'
         )
+        try { gi('ctl00_cp_BotDetectCaptchaCodeTextBox').focus() } catch (e) { }
         return
     }// need staring [configuration] or [start] button click
 
@@ -312,8 +295,12 @@ JSON.stringify(plwizaCFG) + "</b><br/>или скопировать из " +
     }// select City/Town/Placowek: from cfg, user select or default
 
     if((te = gi('ctl00_cp_BotDetectCaptchaCodeTextBox'))){
+        scrollTo(111,1111)
         te.focus()
-        _msg_screen("Нужно вбить содержимое картинки в поле ввода. Тут не могу помочь.")
+        _msg_screen("Нужно вбить содержимое картинки в поле ввода. Тут не могу помочь." +
+            '<br/>Конфигурация:<br/><b style="color:lightgreen">' +
+            JSON.stringify(plwizaCFG) + '</b>'
+        )
         return
         //old: ctl00_cp_f_KomponentObrazkowy_VerificationID
         //new: ctl00_cp_BotDetectCaptchaCodeTextBox
@@ -323,8 +310,13 @@ JSON.stringify(plwizaCFG) + "</b><br/>или скопировать из " +
 
     if((te = gi('ctl00_cp_cbDzien'))){
         waitLenZero(te ,'' ,postPlac)
-        return
 
+        if((te = gi('ctl00_cp_btnRezerwuj'))){
+            _msg_screen('Жму [Зарегистрироваться]')
+            te.dispatchEvent(mkClick())
+            return
+        }
+        return
         //<select name="ctl00$cp$cbDzien" id="ctl00_cp_cbDzien" onchange="cbDzienGodzina_onChange(this);"
         /* old:
          * ,id_Srok = 'ctl00_cp_f_cbTermin'
@@ -333,98 +325,57 @@ JSON.stringify(plwizaCFG) + "</b><br/>или скопировать из " +
     }
 
     if((te = gi('ctl00_cp_cbRodzajUslugi'))){
-        _msg_screen('Выбор услуги: ' + plwizaCFG.type)
-        selectOption(te ,plwizaCFG.type)
-        return
-    }
+        _msg_screen(
+            'Выбор услуги: ' + plwizaCFG.type +
+            ' начало в ' + plwizaCFG.startTime +
+            ', сейчас: <b id="startTime" style="color:lightblue"></b>'
+        )
 
-    if((te = gi('ctl00__10112fb0b408a6d_hlRejestracjaSchengen'))){
-        _msg_screen('Переход Шенгенская Виза - Зарегистрируйте бланк')
-        //te.dispatchEvent(mkClick())
-        return
-    }// Шенгенская Виза - Зарегистрируйте бланк
-
-    con.log('plwiza end')
-}
-
-/*
- *** вход ****
- */
-startFun = function () {
-
-    _cfg()
-
-if (_ctl())
-    return
-
-if (w.location.href == site ||
-    w.location.href == site + "default.aspx") {
-//первая страница, выбор страны, города
-    var i = 0, myse=gi("ctl00_tresc_cbListaKrajow")
-    for (; i<myse.options.length; i++){
-        if (/Беларусь|Belarus/.test(myse.options[i].text)){
-            myse.selectedIndex = i
-            break
+        if(plwizaCFG.startTime){
+            // "12:01".slice(3)  -> 01
+            // "12:01".slice(0,2)-> 12
+            function set_delay(){
+                function pad(n){ return n < 10 ? '0' + n : n }
+                var d = new Date(), dd = new Date(d)
+                d.setHours(parseInt(plwizaCFG.startTime.slice(0,2)))
+                d.setMinutes(parseInt(plwizaCFG.startTime.slice(3)))
+                gi('startTime').innerHTML = pad(dd.getUTCHours()) + ':' +
+                                            pad(dd.getUTCMinutes()) + ':' +
+                                            pad(dd.getUTCSeconds())
+                if(d < dd){
+                    selectOption(te ,plwizaCFG.type)
+                    scrollTo(111,1111)
+                } else {
+                    setTimeout(set_delay ,1024)
+                }
+            }
+            set_delay()
+            return
         }
-    }
-
-    setTimeout('checkRegion()', 0)
-
-} else if (w.location.href == siteRegBlank) {
-    var i = 0, myse = gi(id_vid)
-    if (myse) {
-        myse.focus()
-if(myse.selectedIndex <= 0) {
-    if(!vid) {
-        _log("Вид услуги не указан. Нужно выбрать вручную.")
+        selectOption(te ,plwizaCFG.type)
         scrollTo(111,1111)
         return
-    }
-    for (; i < myse.options.length; i++) {
-        if (RegExp(vid).test(myse.options[i].text)) {
-            myse.selectedIndex = i
-            myse.dispatchEvent(mkChange())
-            break
-        }
-    }
-} else {
-    myse = gi(id_Srok)
-    if (!myse) return
+    }// select type
 
-    if(myse.selectedIndex <= 0) {
-        myse.focus()
-        fireTick("checkSel", id_Srok, Srok, postSrok, "CРОК (после ВИД УСЛУГИ)", id_vid)
-    } else {
-    _log("Бронь")
-        myse = gi(id_Bron)
-        if (!myse) return
-        myse.focus()
-        myse.dispatchEvent(mkClick())
-    }
-}
-} else {
-var el = gi('ctl00_cp_f_KomponentObrazkowy_VerificationID')
-if (el) el.focus()
-_log("<br/>Нужно вбить содержимое картинки в поле ввода (ЗАГЛАВНЫЕ можно писать как строчные). Я уж тут не могу помочь.")
-}
-} else if(w.location.href == siteForm ||
-          RegExp(siteFormP).test(w.location.href)) {
-/*	playAlert()
-    if (/звонить/.test(Forma)) {
-        var nn = 0
-        setTimeout(playAlert, 14000*(nn++)) ; setTimeout(playAlert, 14000*(nn++))
-        setTimeout(playAlert, 14000*(nn++)) ; setTimeout(playAlert, 14000*(nn++))
-        setTimeout(playAlert, 14000*(nn++)) ; setTimeout(playAlert, 14000*(nn++))
-        setTimeout(playAlert, 14000*(nn++)) ; setTimeout(playAlert, 14000*(nn++))
-    } else { // create textarea, ask for ctrl+c ctrl + v, press ok
-        _formData()
-    }*/
-    _formData()
-} else if(w.location.href == siteGorod) {
-w.location.href = siteRegBlank
-}
-}
+    if((te = gi('ctl00_cp_f_cmdDalej'))){
+        _msg_screen(
+"<b style='color:black'>Заполняем форму.Данные скопировать в<br/>" +
+"<b style='color:lightgreen'>Excel'е</b> <b style='color:white'>CTRL+C</b> " +
+"вставить <b style='color:blue'>здесь</b> <b style='color:white'>CTRL+V</b>:</b><br/>" +
+'<textarea id="ccfgg" style="font-size:8pt;background-color:orange" rows="4" cols="77"></textarea><br/>' +
+'<input value="Внести ' + ver + '" onclick="javascript:plVFF()" id="plvizaformData" type="button" style="font-weight:bold" />' +
+'Пустой текст покажет Demo заполнения.'
+        )
+        return
+    }// fill the from
 
+    i = 0, te = gs('a') // this link seems to be very smart
+    for(; i < te.length; i++) if(/RejestracjaSchengen/.test(te[i].id)){
+        _msg_screen('Переход Шенгенская Виза - Зарегистрируйте бланк')
+        te[i].dispatchEvent(mkClick())
+        break
+    }
+}// mainPlwiza()
 
 plVFF = function(){ // read XLS data into array for later filling
 try {
@@ -524,17 +475,16 @@ if (!el) {
 } // else break; //до первой пустой строки idшников
     }//while
     x.parentNode.parentNode.removeChild(x.parentNode)
-    _log("<br/>Подгрузили. Запускаем заполнялку, BPEM9 = " + BPEM9)
+    _log("<br/>Подгрузили. Запускаем заполнялку, BPEM9 = " + plwizaCFG.milliSecItem)
     //unWin.pfd()
-    setTimeout('pfd()', BPEM9)
+    setTimeout('pfd()', plwizaCFG.milliSecItem)
 } catch (e) { alert ("Случилась херь3: " + e)}
 }
 
-fa = null // array filled with data
-dataJ = 0
-BPEM9 = BPEM9
-pfd = function() { // pop filled data
-    var el, s, d = unWin.fa[unWin.dataJ]
+var fa = null // array filled with data
+    ,dataJ = 0
+    ,pfd = function() { // pop filled data
+    var el, s, d = fa[dataJ]
 
 con.log('d1 = ' + d)
 
@@ -567,29 +517,12 @@ con.log('d2 = ' + d + '\n----\n')
         el.dispatchEvent(mkClick())
         //el.dispatchEvent(mkChange())*/
     } else if('focus' == s[1]) {
-        unWin.dataJ = null
-        unWin.fa = null
+        dataJ = null
+        fa = null
         return
     }
-    ++unWin.dataJ
-    setTimeout('pfd()', BPEM9)
-}
-
-var _formData = function(){
-    _log("<br/><b style='color:black'>Данные для заполненения. Cкопировать в <b style='color:lightgreen'>Excel</b> <b style='color:white'>CTRL+C</b> вставить <b style='color:blue'>здесь</b> <b style='color:white'>CTRL+V</b>.</b><br/>"+
-    '<input value="Внести v008" onclick="javascript:plVFF()" id="idFill" type="button" /> Пустой текст покажет Demo пример заполнения.'+
-    "<br/>")
-    var x = gi("llogg"), t
-    if (!x) {
-        alert("Произошла херь!")
-        return
-    }
-    t = cl("textarea")
-    t.setAttribute("style","font-size:8pt;background-color:orange")
-    t.setAttribute("id","plvizaformData")
-    t.setAttribute("cols","55")
-    t.setAttribute("rows","3")
-    x.appendChild(t)
+    ++dataJ
+    setTimeout('pfd()', plwizaCFG.milliSecItem)
 }
 
 //id array + demo
@@ -713,5 +646,5 @@ var darr = [["id","Значение"],
 ["?check ctl00_cp_f_chk44Oswiadczenie3","да"],
 ["?focus ctl00_cp_f_cmdDalej",""]]
 
-})(window ,document ,location ,localStorage ,alert ,setTimeout ,console)
+})(window ,document ,localStorage ,alert ,setTimeout ,console)
 //olecom: ak_src.js ends here
