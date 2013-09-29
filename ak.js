@@ -226,7 +226,13 @@ JSON.stringify(plwizaCFG) + "</b><br/>или скопировать из " +
  lost['plwizacfg'] : '' ) +
 '</div>'
         )
-        try { gi('ctl00_cp_BotDetectCaptchaCodeTextBox').focus() } catch (e) { }
+        try {
+            gi('ctl00_cp_BotDetectCaptchaCodeTextBox').focus()
+            setTimeout(
+                "document.getElementById('ctl00_cp_BotDetectCaptchaCodeTextBox').focus()"
+                ,0
+            )//Firefox focus() fix
+        } catch (e) { }
         return
     }// need staring [configuration] or [start] button click
     if((te = lost['plwizacfg'])) plwizaCFG = JSON.parse(te)
@@ -245,10 +251,13 @@ JSON.stringify(plwizaCFG) + "</b><br/>или скопировать из " +
     if((te = gi('ctl00_cp_BotDetectCaptchaCodeTextBox'))){
         scrollTo(111,1111)
         te.focus()
+        te.dispatchEvent(mkClick())//Firefox focus() fix try
+
         _msg_screen("Нужно вбить содержимое картинки в поле ввода. Тут не могу помочь." +
             '<br/>Конфигурация:<br/><b style="color:lightgreen">' +
             JSON.stringify(plwizaCFG) + '</b>'
         )
+
         return
         //old: ctl00_cp_f_KomponentObrazkowy_VerificationID
         //new: ctl00_cp_BotDetectCaptchaCodeTextBox
@@ -263,6 +272,7 @@ JSON.stringify(plwizaCFG) + "</b><br/>или скопировать из " +
 
         if((te = gi('ctl00_cp_btnRezerwuj'))){
             _msg_screen('Жму [Зарегистрироваться]')
+            te.focus()
             te.dispatchEvent(mkClick())
             return
         }
@@ -336,7 +346,7 @@ try {
         ,j ,i = 0 // first (zero) line has column headers
         ,demo = !true
         ,el, elId ,v
-alert(x.value)
+
     if(rows.length < 7) demo = true // demo if text is empty
 
     _msg_screen('Заполняем.<br/>Демо режим: ' + (demo ? 'да' : 'нет'))
@@ -454,7 +464,7 @@ con.log('d2 = ' + d)
     } else if('check' == s[1]) {
         el.dispatchEvent(mkClick())
     } else if('focus' == s[1]){
-        dataJ = fa = null
+        fa.splice((dataJ = 0))// cleanup
         return// last form element
     }
     ++dataJ
