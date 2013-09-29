@@ -2,6 +2,8 @@
 
 Automatic form filling bot/userscript for [by.]e-konsulat.gov.pl in Chrome and Firefox
 
+http://userscripts.org/scripts/show/178806
+
 # Browsers Supported
 
 * Chrome (v0.8+)
