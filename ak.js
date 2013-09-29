@@ -12,19 +12,21 @@
 // v007@2013-01-19  rejestracja
 //     @2013-05-27  fix siteFormP regexp
 // v008@2013-09-15  minor fixes, intro automation is back
-//     @2013-09-26, 27
+//     @2013-09-26, 27, 28, 29
 //                  load into page itself, dev/prod URLS, Chrome support,
 //                  complete rewrite, start time
 
-var continue_plwiza ,configure_plwiza ,zerofy
-(function(w ,doc ,lost ,alert ,setTimeout ,con){
+// functions to be used in page context
+var continue_plwiza ,configure_plwiza ,read_xls_data ,fill_plwizaform_items
+
+(function plwiza_closure(w ,doc ,lost ,alert ,setTimeout ,con){
 //devel: localStorage['plwizadev'] = '1'
 
 var ver = 'v008'
 ,Gorod = 'Брест'
 ,Vid = 'ПОКУПКИ' //'ПОКУПКИ', 'ГОСТ'....
 ,Srok = ''       //'2012-05-11'
-,BPEM9 = 555     /* время заполнения одного элемента */
+,BPEM9 = 555     // время заполнения одного элемента
 ,plwizaCFG = {
     city: Gorod ,type: Vid ,date: Srok ,milliSecItem: BPEM9 ,startTime: '12:01'
 }
@@ -39,13 +41,7 @@ var site = 'https://rejestracja.by.e-konsulat.gov.pl/'
 
 // "siteRegBlank"
     ,id_vid = 'ctl00_cp_f_cbRodzajUslugi'
-    ,postVid = "__doPostBack('ctl00$cp_f$cbRodzajUslugi','')"
-
-    ,id_Srok = 'ctl00_cp_f_cbTermin'
-    ,postSrok = "__doPostBack('ctl00$cp_f$cbTermin','')"
-
-    ,id_Bron = 'ctl00_cp_f_btnRezerwuj'
-    ,dela = 'http://dela.by/ftp/plwiza/'
+    ,dataJ = 0 ,darr ,fa = [] //poiner, demo array and one for deferred filling
 
 /* helpers */
 function gi(i){ return doc.getElementById(i) }
@@ -66,25 +62,17 @@ function mkChange(){
     ev.initEvent("change", true, true)
     return ev
 }
-zerofy = zeroFySelectOption
-function zeroFySelectOption(el, val, cb, d){
-    // there is string argument for element if call was done by setTimeout()
-    if(typeof el == 'string') { el = gi(el) }
-    el.focus()
-    el.selectedIndex = 0
-    el.dispatchEvent(mkChange())
-    _msg_screen("повторяем попытку для " + d + " : " + Date())
-}
 
-function selectOption(el, val){
+function selectOption(el, val, last_item){
 try {
     if(typeof el == 'string') { el = gi(el) }
-    var i = 1
+    var i
     if(val) for (i = 0; i < el.options.length; i++){
         if (RegExp(val).test(el.options[i].text)){
-//con.log(i + ": " + myse.options[i].text)
             break
         }
+    } else {
+        i = last_item ? el.options.length - 1 : 1
     }
     if(el.selectedIndex !== i){
         el.focus()
@@ -96,34 +84,6 @@ try {
 } catch(e) { alert ("Случилась херь в selectOption: " + e) }
 }
 
-function fireTick(fun, el, val, cb, d, pid, dt) {
-    setTimeout(fun + "('"+el+"','" +val+"','"+q(cb)+"','"+d+"','"+pid+"')", 777 + parseInt(dt ? dt : 0))
-}
-
-function continuePlwiza(){
-    var el ,msg
-    if((el = gi('cfgd'))){
-        gi('llogg').childNodes[0].removeChild(el)
-        msg = 'Начинаем работу с конфигурацией по умолчанию:<br/>' +
-              '<b style="color:lightgreen">' + JSON.stringify(plwizaCFG) + '</b>'
-    } else {
-        if((msg = lost['plwizacfg'])){
-            plwizaCFG = JSON.parse(msg)
-            msg = 'Продолжаем работу автозаполнения. Конфигурация(кэш):<br/>' +
-                  '<b style="color:lightgreen">' + msg
-        } else {
-            msg = 'Продолжаем работу автозаполнения. Конфигурация(умолчания):<br/>' +
-                  '<b style="color:lightgreen">' + JSON.stringify(plwizaCFG)
-        }
-    }
-
-    //TODO: if in middle of the form fill, continue this action
-
-    _msg_screen(msg)
-    lost['plwizago'] = '1'
-    setTimeout(mainPlwiza ,123)
-}
-continue_plwiza = continuePlwiza
 function _msg_screen(msg){
     var x ,el = gi("llogg")
     if (!el) {
@@ -148,7 +108,7 @@ function _msg_screen(msg){
 "start.removeAttribute('disabled'); start.setAttribute('enabled', true);" +
 "delete localStorage.plwizago; delete t.enabled; t.disabled = true;" +
             '})(this)" id="idStop" type="button"/>' +
-            '<input value="Сбросить конфигурацию" style="font-weight:bold" ' +
+            '<input value="Сбросить конфиг" style="font-weight:bold" ' +
             (lost['plwizacfg'] ? 'enabled' : 'disabled') + '="true" ' +
             'onclick="javascript:' +
 "delete localStorage.plwizacfg; delete this.enabled; this.disabled = true;" +
@@ -170,37 +130,30 @@ function _msg_screen(msg){
     return el
 }
 
-function waitLenZero(el, val, cb, pid){
-try {
-    if(typeof el == 'string') { el = gi(el) }
-    scrollTo(111,1111)
-    if (/disab|true/.test(el.getAttribute("disabled"))) {
-        var pEl = gi(pid)
-        if (pEl) pEl.focus()
-        /*
-        confirm("Элемент недоступен. Нужны другие параметры или другое время\n"+
-                    "Пробовать ещё?\n\n[" +el+ "] pid: " + pid)
-        */
-        if(true) {
-            if (!pEl) {
-                _log("Не указан предыдущий элемент заполнения")
-                return
-            }
-            if (!pEl) return
-            _log("ждём время " + (7777+777)/1000 + " сек")
+continue_plwiza = continuePlwiza
+function continuePlwiza(){
+    var el ,msg
 
-            fireTick("zerofy", pid, '', '', "ВИД УСЛУГИ", id_vid, 4444)
-        }
-        return
-    }
-
-    if(el.length > 0) {
-        selectOption(el, val)
+    if((el = gi('cfgd'))){
+        gi('llogg').childNodes[0].removeChild(el)
+        msg = 'Начинаем работу с конфигурацией по умолчанию:<br/>' +
+              '<b style="color:lightgreen">' + JSON.stringify(plwizaCFG) + '</b>'
     } else {
-        setTimeout("waitLenZero('"+el.getAttribute('id')+"','" +val+"','"+q(cb)+"','"+pid+"')", 777)
+        if((msg = lost['plwizacfg'])){
+            plwizaCFG = JSON.parse(msg)
+            msg = 'Продолжаем работу автозаполнения. Конфигурация(кэш):<br/>' +
+                  '<b style="color:lightgreen">' + msg
+        } else {
+            msg = 'Продолжаем работу автозаполнения. Конфигурация(умолчания):<br/>' +
+                  '<b style="color:lightgreen">' + JSON.stringify(plwizaCFG)
+        }
     }
-} catch (e) { alert ("Случилась херь waitLenZero: " + e)}
+
+    _msg_screen(msg)
+    lost['plwizago'] = '1'
+    setTimeout(mainPlwiza ,123)
 }
+
 configure_plwiza = onclickPlwizaCfg
 function onclickPlwizaCfg() {
 try {
@@ -241,8 +194,6 @@ try {
     cols = gi('idClearCFG')
     cols.removeAttribute('disabled') ; cols.setAttribute('enabled', true)
 
-    //TODO: if in middle of the form fill, continue this action
-
     _msg_screen('Конфигурация записана в кэш:<br/>' +
         '<b style="color:lightgreen">' + JSON.stringify(plwizaCFG)
     )
@@ -254,10 +205,11 @@ try {
 /*       ====    MAIN RUN    ====        */
          mainPlwiza()
          return
+/*       ====    MAIN END    ====        */
 
 function mainPlwiza(){
-
     var te ,i
+
     if((te = gi("ctl00_ddlWersjeJezykowe"))){
         if(selectOption(te ,'Русс')) return // no other actions
     }// select language
@@ -285,13 +237,8 @@ JSON.stringify(plwizaCFG) + "</b><br/>или скопировать из " +
            <option value="94">Минск</option> */
         te.focus()
         _msg_screen('Автозаполняем Город...')
-
         selectOption(te ,plwizaCFG.city)
-        /*if(plwizaCFG.city){
-            waitLenZero(te ,plwizaCFG.city ,postPlac)
-        } else {
-            //menuRegion(te, q(postPlac))
-        }*/
+
         return // no other actions
     }// select City/Town/Placowek: from cfg, user select or default
 
@@ -310,7 +257,9 @@ JSON.stringify(plwizaCFG) + "</b><br/>или скопировать из " +
     /* == Finding of enabled types with dates ==*/
 
     if((te = gi('ctl00_cp_cbDzien'))){
-        waitLenZero(te ,'' ,postPlac)
+        lost['plwizadate'] = te.options[te.options.length - 1].text
+
+        selectOption(te ,0 ,'last_item')
 
         if((te = gi('ctl00_cp_btnRezerwuj'))){
             _msg_screen('Жму [Зарегистрироваться]')
@@ -358,19 +307,21 @@ JSON.stringify(plwizaCFG) + "</b><br/>или скопировать из " +
         return
     }// select type
 
-    if((te = gi('ctl00_cp_f_cmdDalej'))){
+    if((te = gi('ctl00_cp_f_cmdDalej'))){// prepare user to autofill the from
+        // setup deferred item fill functions and data
+        read_xls_data = plVFF ,fill_plwizaform_items = pfd ,define_darr()
         _msg_screen(
-"<b style='color:black'>Заполняем форму.Данные скопировать в<br/>" +
+"<b style='color:black'>Заполняем форму.Данные скопировать из<br/>" +
 "<b style='color:lightgreen'>Excel'е</b> <b style='color:white'>CTRL+C</b> " +
 "вставить <b style='color:blue'>здесь</b> <b style='color:white'>CTRL+V</b>:</b><br/>" +
-'<textarea id="ccfgg" style="font-size:8pt;background-color:orange" rows="4" cols="77"></textarea><br/>' +
-'<input value="Внести ' + ver + '" onclick="javascript:plVFF()" id="plvizaformData" type="button" style="font-weight:bold" />' +
-'Пустой текст покажет Demo заполнения.'
+'<textarea id="plvizaformData" onfocus="javascript:this.value='+"''"+'" id="ccfgg" style="font-size:8pt;background-color:lightgreen;float:left" rows="3" cols="66">Пустой текст покажет Demo заполнения.</textarea>' +
+'<input value="Внести данные" onclick="javascript:read_xls_data()" type="button" style="font-weight:bold"/><br/>Версия ak: ' + ver +
+'<br/><br/>Дата визы: ' + lost['plwizadate']
         )
         return
-    }// fill the from
+    } else if(lost.plwizadate) { delete lost.plwizadate }
 
-    i = 0, te = gs('a') // this link seems to be very smart
+    i = 0, te = gs('a')// this link seems to be very smart
     for(; i < te.length; i++) if(/RejestracjaSchengen/.test(te[i].id)){
         _msg_screen('Переход Шенгенская Виза - Зарегистрируйте бланк')
         te[i].dispatchEvent(mkClick())
@@ -378,157 +329,142 @@ JSON.stringify(plwizaCFG) + "</b><br/>или скопировать из " +
     }
 }// mainPlwiza()
 
-plVFF = function(){ // read XLS data into array for later filling
+function plVFF(){// read XLS data into array for deferred item by item filling
 try {
     var x = gi("plvizaformData")
         ,rows = x.value.split('\n')
-        ,i = 0 // first (zero) line has column headers
+        ,j ,i = 0 // first (zero) line has column headers
         ,demo = !true
-        ,el, elId, v
-    unWin.fa = []
+        ,el, elId ,v
+alert(x.value)
+    if(rows.length < 7) demo = true // demo if text is empty
 
-    if (rows.length < 7)
-        demo = true // demo if text is empty
+    _msg_screen('Заполняем.<br/>Демо режим: ' + (demo ? 'да' : 'нет'))
 
-    while (++i < darr.length) { // skip first (zero) line with column headers
-        if(!demo)  // demo(darr) or XLS data row: [id, ##, name, value]
+    while(++i < darr.length){ // skip first (zero) line with column headers
+        if(!demo){// demo(darr) or XLS data row: [id, ##, name, value]
             v = rows[i].split('\t')
-        elId = demo ? darr[i][0] : v[0]
-           v = demo ? darr[i][1] : v[3]
+        }
+        elId = demo ? darr[i][0] : v[0]// 1st data column -- form IDs
+           v = demo ? darr[i][1] : v[3]// 3d  data column -- data
+        if(!elId) continue
 
-if (elId) {
-        if (/^[?]focus/.test(elId)) {
-//con.log('radio | check id=: "' + elId + '"')
-            elId = elId.replace(/^.* ([^ ]+$)/g,'$1')
-            if (elId) {
-                el= gi(elId)
-if (!el) {
-    alert("Не найден ?focus элемент! Что-то где-то поменялось. Не могу заполнять.\n\ni="+i+"\nid="+elId)
-    continue //return
-}
-                //el.focus()
-                unWin.fa.push(elId + " focus")
+        if(/^[?]focus/.test(elId)){
+            elId = elId.replace(/^.* ([^ ]+$)/g, '$1')// take pure ID of element
+            if(!elId) continue
+
+            el = gi(elId)
+            if(!el){
+                _msg_screen(
+"Не найден ?focus элемент! Что-то где-то поменялось. Не могу заполнять.<br/>i=" +
+                    i + "; id=" + elId
+                )
+                continue
             }
-        } else if (/^[?]check/.test(elId) && v) {
-            elId = elId.replace(/^.* ([^ ]+$)/g,'$1')
-            if (elId) {
-                el= gi(elId)
-if (!el) {
-    alert("Не найден ?checkbox элемент! Что-то где-то поменялось. Не могу заполнять.\n\ni="+i+"\nid="+elId)
-    continue //return
-}
-                if(v.trim()) {
-                    //unWin.fa.push(elId + " check")
-                    el.dispatchEvent(mkClick())
+            fa.push(elId + " focus")
+        } else if(/^[?]check/.test(elId) && v){
+            elId = elId.replace(/^.* ([^ ]+$)/g, '$1')
+            if(!elId) continue
 
-                    //el.setAttribute("checked", "true");
-                    //el.dispatchEvent(mkChange())
-                }
+            el = gi(elId)
+            if(!el){
+                _msg_screen(
+"Не найден ?checkbox элемент! Что-то где-то поменялось. Не могу заполнять.<br/>i=" +
+                    i+"; id=" + elId
+                )
+                continue
             }
-        } else if (/^[?]radio/.test(elId) && v) {
-            elId = v.replace(/^.* ([^ ]+$)/g,'$1')
-//con.log('radio | check id=: "' + elId + '"')
-            if (elId) {
-              el= gi(elId)
-
-if (!el) {
-    alert("Не найден ?radio элемент! Что-то где-то поменялось. Не могу заполнять.\n\ni="+i+"\nid="+elId)
-    continue //return
-}
-                //el.checked = true
-                //el.setAttribute("checked", "true")
-                //el.dispatchEvent(mkChange())
-                //unWin.fa.push(elId + " radio")
+            if(v.trim()) fa.push(elId + " check")
+        } else if(/^[?]radio/.test(elId) && v){
+            elId = v.replace(/^.* ([^ ]+$)/g, '$1')
+            if(!elId) continue
+            el = gi(elId)
+            if(!el){
+                _msg_screen(
+"Не найден ?radio элемент! Что-то где-то поменялось. Не могу заполнять.<br/>i=" +
+                    i + "; id=" + elId
+                )
+                continue
+            }
+            fa.push(elId + " radio")
+        } else if(!/^[?]/.test(elId) && v){
+            //add more "last visas" input fields
+            if(/PoprzednieWizy_/.test(elId)){// was RE: _txtDataOd
+                el = gi('ctl00_cp_f_btn26Wiecej')
+                el.focus()
                 el.dispatchEvent(mkClick())
-                //}
-            } else {
-                alert("Не найден ID! Что-то в данных Excel не то. Не могу заполнять.\n\ni="+i+"\nv="+v)
-                return
             }
-        } else if (!/^[?]/.test(elId) && v) {
-            //add more visa input fields
-            if(/PoprzednieWizy_[12]_txtDataOd/.test(elId)){
-                with (gi('ctl00_cp_f_btn26Wiecej')){
-                    focus()
-                    dispatchEvent(mkClick())
-                }
+            el = gi(elId)
+            if(!el){
+                _msg_screen(
+"Не найден элемент! Что-то где-то поменялось. Не могу заполнять.<br/>i=" +
+                    i + "; id=" + elId
+                )
+                continue
             }
-            el= gi(elId)
-if (!el) {
-    alert("Не найден элемент! Что-то где-то поменялось. Не могу заполнять.\n\ni="+i+"\nid="+elId)
-    continue //return
-}
-            if (/_dd/.test(elId) || /s_cb/.test(elId)) { //select
-                var j = 0
-                while (++j < el.options.length) {
+            if (/_dd/.test(elId) || /s_cb/.test(elId)){ //select
+                j = 0
+                while(++j < el.options.length) {
                     if (RegExp(v).test(el.options[j].text)) {
-                        //el.selectedIndex = j
-                        unWin.fa.push(elId + " select " + j)
+                        fa.push(elId + " select " + j)
                         break
                     }
                 }
-            } else { //простой текст
-                //el.setAttribute("value", v);
-                unWin.fa.push([ elId + " txt", v])
+            } else {// simple text
+                fa.push([elId + " txt", v])
             }
-            //el.dispatchEvent(mkChange())
         }
-} // else break; //до первой пустой строки idшников
     }//while
-    x.parentNode.parentNode.removeChild(x.parentNode)
-    _log("<br/>Подгрузили. Запускаем заполнялку, BPEM9 = " + plwizaCFG.milliSecItem)
-    //unWin.pfd()
-    setTimeout('pfd()', plwizaCFG.milliSecItem)
-} catch (e) { alert ("Случилась херь3: " + e)}
+    _msg_screen(
+        "Подгрузили. Запускаем заполнялку, задержка = " +
+        plwizaCFG.milliSecItem + ' миллисекунд'
+    )
+    setTimeout(fill_plwizaform_items, plwizaCFG.milliSecItem)
+} catch(e){ alert("Случилась херь read_xls_data: " + e) }
 }
 
-var fa = null // array filled with data
-    ,dataJ = 0
-    ,pfd = function() { // pop filled data
-    var el, s, d = fa[dataJ]
+function pfd(){// pop filled data into form
+    var el, s ,d = fa[dataJ]
 
 con.log('d1 = ' + d)
 
-    if (!d || getV("v1")) return
+    if(!d || !lost.plwizago) return
+
     if (typeof d != 'string') {
         s = d[0].split(' ')
-    } else s = d.split(' ')
+    } else {
+        s = d.split(' ')
+    }
 
 con.log(s)
-con.log('d2 = ' + d + '\n----\n')
+con.log('d2 = ' + d)
 
-    el= gi(s[0])
-    if (!el) return
-
+    el = gi(s[0])
+    if(!el) return
     el.focus()
-    if ('txt' == s[1]) {
+    if('txt' == s[1]){
         el.setAttribute("value", d[1]);
         el.value = d[1]
         el.dispatchEvent(mkChange())
-        //el.dispatchEvent(mkClick())
-    } else if('select' == s[1]) {
+    } else if('select' == s[1]){
         el.selectedIndex = parseInt(s[2])
         el.dispatchEvent(mkChange())
-    /*} else if('radio' == s[1]) {
-        //el.setAttribute("checked", "true");
+    } else if('radio' == s[1]) {
         el.dispatchEvent(mkClick())
-        //el.dispatchEvent(mkChange())
     } else if('check' == s[1]) {
-        //el.setAttribute("checked", "true")
         el.dispatchEvent(mkClick())
-        //el.dispatchEvent(mkChange())*/
-    } else if('focus' == s[1]) {
-        dataJ = null
-        fa = null
-        return
+    } else if('focus' == s[1]){
+        dataJ = fa = null
+        return// last form element
     }
     ++dataJ
-    setTimeout('pfd()', plwizaCFG.milliSecItem)
+    setTimeout(fill_plwizaform_items, plwizaCFG.milliSecItem)
 }
 
+function define_darr(){
 //id array + demo
 //sed '/END/q;s/^\([^\t]*\)\t[^\t]*\t[^\t]*\t\(.*\)/["\1","\2"],/;s/[[:blank:]]\{1,\}/ /'
-var darr = [["id","Значение"],
+darr = [["id","Значение"],
 ["ctl00_cp_f_daneOs_txtNazwisko","FAMILIA"],
 ["ctl00_cp_f_daneOs_txtNazwiskoRodowe","IMIA"],
 ["ctl00_cp_f_daneOs_txtImiona","OCHESTVO"],
@@ -646,6 +582,7 @@ var darr = [["id","Значение"],
 ["?check ctl00_cp_f_chk44Oswiadczenie2","да"],
 ["?check ctl00_cp_f_chk44Oswiadczenie3","да"],
 ["?focus ctl00_cp_f_cmdDalej",""]]
+}
+})(window ,document ,localStorage ,alert ,setTimeout ,console ? console : function(){})
 
-})(window ,document ,localStorage ,alert ,setTimeout ,console)
-//olecom: ak_src.js ends here
+//olecom: ak.js ends here
