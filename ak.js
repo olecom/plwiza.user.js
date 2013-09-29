@@ -119,13 +119,13 @@ function _msg_screen(msg){
         el = cl("div")
         el.setAttribute("id","llogg")
         el.setAttribute("style",
-            "font-size:10pt; background-color:red;" +
+            "font-size:10pt; background-color:#FFE4E1;" +
             "z-index:77; padding:7px"
         )
         x.appendChild(el)
     }
     if(msg){
-        el.innerHTML += '<b style="color:white">' + msg + '</b><br/>'
+        el.innerHTML += '<b style="color:black">' + msg + '</b><br/>'
     }
     return el
 }
@@ -137,15 +137,15 @@ function continuePlwiza(){
     if((el = gi('cfgd'))){
         gi('llogg').childNodes[0].removeChild(el)
         msg = 'Начинаем работу с конфигурацией по умолчанию:<br/>' +
-              '<b style="color:lightgreen">' + JSON.stringify(plwizaCFG) + '</b>'
+              '<b style="color:green">' + JSON.stringify(plwizaCFG) + '</b>'
     } else {
         if((msg = lost['plwizacfg'])){
             plwizaCFG = JSON.parse(msg)
             msg = 'Продолжаем работу автозаполнения. Конфигурация(кэш):<br/>' +
-                  '<b style="color:lightgreen">' + msg
+                  '<b style="color:green">' + msg
         } else {
             msg = 'Продолжаем работу автозаполнения. Конфигурация(умолчания):<br/>' +
-                  '<b style="color:lightgreen">' + JSON.stringify(plwizaCFG)
+                  '<b style="color:green">' + JSON.stringify(plwizaCFG)
         }
     }
 
@@ -195,7 +195,7 @@ try {
     cols.removeAttribute('disabled') ; cols.setAttribute('enabled', true)
 
     _msg_screen('Конфигурация записана в кэш:<br/>' +
-        '<b style="color:lightgreen">' + JSON.stringify(plwizaCFG)
+        '<b style="color:green">' + JSON.stringify(plwizaCFG)
     )
     setTimeout(mainPlwiza ,123)
     return
@@ -216,10 +216,12 @@ function mainPlwiza(){
 
     if(!lost['plwizago']){// if stop
         _msg_screen(
-"<div id='cfgd'><b style='color:black'>Настройки. По умолчанию:<br/><b style='color:lightgreen'>" +
+"<div id='cfgd'><b style='color:black'>Настройки. По умолчанию:<br/><b style='color:green'>" +
 JSON.stringify(plwizaCFG) + "</b><br/>или скопировать из " +
-"<b style='color:lightgreen'>Excel</b> <b style='color:white'>CTRL+C</b> " +
-"вставить <b style='color:blue'>здесь</b> <b style='color:white'>CTRL+V</b>:</b><br/>" +
+
+"<b><u><a style='color:blue' href='https://github.com/olecom/plwiza.user.js/raw/master/plwiza_form.xlt'>" +
+"Excel'а (файл в этой сслыке)</a></u></b> <b style='color:red'>CTRL+C</b> область настроек<br/>" +
+"вставить <b style='color:green'>здесь</b> <b style='color:red'>CTRL+V</b>:</b><br/>" +
 '<textarea id="ccfgg" style="font-size:8pt;background-color:lightblue" rows="4" cols="77"></textarea><br/>' +
 '<input value="Настроить из вставки" onclick="javascript:configure_plwiza()" type="button"/> ' +
 (lost['plwizacfg'] ? "Сохранённая в кэше конфигурация:<br/><b style='color:lightgreen'>" +
@@ -322,12 +324,13 @@ JSON.stringify(plwizaCFG) + "</b><br/>или скопировать из " +
         // setup deferred item fill functions and data
         read_xls_data = plVFF ,fill_plwizaform_items = pfd ,define_darr()
         _msg_screen(
-"<b style='color:black'>Заполняем форму.Данные скопировать из<br/>" +
-"<b style='color:lightgreen'>Excel'е</b> <b style='color:white'>CTRL+C</b> " +
-"вставить <b style='color:blue'>здесь</b> <b style='color:white'>CTRL+V</b>:</b><br/>" +
+"<b>Заполняем форму. Данные (4 первых столбца) скопировать из<br/>" +
+"<b><u><a style='color:blue' href='https://github.com/olecom/plwiza.user.js/raw/master/plwiza_form.xlt'>" +
+"Excel'а (файл в этой сслыке)</a></u></b> <b style='color:red'>CTRL+C</b> " +
+"вставить здесь <b style='color:red'>CTRL+V</b>:</b><br/>" +
 '<textarea id="plvizaformData" onfocus="javascript:this.value='+"''"+'" id="ccfgg" style="font-size:8pt;background-color:lightgreen;float:left" rows="3" cols="66">Пустой текст покажет Demo заполнения.</textarea>' +
 '<input value="Внести данные" onclick="javascript:read_xls_data()" type="button" style="font-weight:bold"/><br/>Версия ak: ' + ver +
-'<br/><br/>Дата визы: ' + lost['plwizadate']
+((te =lost['plwizadate']) ? '<br/><br/>Дата визы: ' + te : '')
         )
         return
     } else if(lost.plwizadate) { delete lost.plwizadate }
