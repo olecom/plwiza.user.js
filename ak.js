@@ -28,7 +28,7 @@ var ver = 'v008'
 ,Srok = ''       //'2012-05-11'
 ,BPEM9 = 555     // время заполнения одного элемента
 ,plwizaCFG = {
-    city: Gorod ,type: Vid ,date: Srok ,milliSecItem: BPEM9 ,startTime: '12:01'
+    city: Gorod ,type: Vid ,date: Srok ,milliSecItem: BPEM9 ,startTime: '12:00:21'
 }
 
                                 //к//о//д//и//н//г//
@@ -298,11 +298,12 @@ JSON.stringify(plwizaCFG) + "</b><br/>или скопировать из " +
             function set_delay(){
                 function pad(n){ return n < 10 ? '0' + n : n }
                 var d = new Date(), dd = new Date(d)
-                d.setHours(parseInt(plwizaCFG.startTime.slice(0,2)))
-                d.setMinutes(parseInt(plwizaCFG.startTime.slice(3)))
-                gi('startTime').innerHTML = pad(dd.getUTCHours()) + ':' +
-                                            pad(dd.getUTCMinutes()) + ':' +
-                                            pad(dd.getUTCSeconds())
+                d.setHours(parseInt(plwizaCFG.startTime.slice(0, 2)))
+                d.setMinutes(parseInt(plwizaCFG.startTime.slice(3, 5)))
+                d.setSeconds(parseInt(plwizaCFG.startTime.slice(6, 8)))
+                gi('startTime').innerHTML = pad(dd.getHours()) + ':' +
+                                            pad(dd.getMinutes()) + ':' +
+                                            pad(dd.getSeconds())
                 if(d < dd){
                     selectOption(te ,plwizaCFG.type)
                     scrollTo(111,1111)
