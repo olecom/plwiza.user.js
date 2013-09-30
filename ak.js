@@ -224,7 +224,7 @@ JSON.stringify(plwizaCFG) + "</b><br/>или скопировать из " +
 "вставить <b style='color:green'>здесь</b> <b style='color:red'>CTRL+V</b>:</b><br/>" +
 '<textarea id="ccfgg" style="font-size:8pt;background-color:lightblue" rows="4" cols="77"></textarea><br/>' +
 '<input value="Настроить из вставки" onclick="javascript:configure_plwiza()" type="button"/> ' +
-(lost['plwizacfg'] ? "Сохранённая в кэше конфигурация:<br/><b style='color:lightgreen'>" +
+(lost['plwizacfg'] ? "Сохранённая в кэше конфигурация:<br/><b style='color:green'>" +
  lost['plwizacfg'] : '' ) +
 '</div>'
         )
@@ -233,7 +233,7 @@ JSON.stringify(plwizaCFG) + "</b><br/>или скопировать из " +
             setTimeout(
                 "document.getElementById('ctl00_cp_BotDetectCaptchaCodeTextBox').focus()"
                 ,0
-            )//Firefox focus() fix
+            )//Firefox focus() fix (doesn't work)
         } catch (e) { }
         return
     }// need staring [configuration] or [start] button click
@@ -256,7 +256,7 @@ JSON.stringify(plwizaCFG) + "</b><br/>или скопировать из " +
         te.dispatchEvent(mkClick())//Firefox focus() fix try
 
         _msg_screen("Нужно вбить содержимое картинки в поле ввода. Тут не могу помочь." +
-            '<br/>Конфигурация:<br/><b style="color:lightgreen">' +
+            '<br/>Конфигурация:<br/><b style="color:green">' +
             JSON.stringify(plwizaCFG) + '</b>'
         )
 
@@ -324,13 +324,17 @@ JSON.stringify(plwizaCFG) + "</b><br/>или скопировать из " +
         // setup deferred item fill functions and data
         read_xls_data = plVFF ,fill_plwizaform_items = pfd ,define_darr()
         _msg_screen(
-"<b>Заполняем форму. Данные (4 первых столбца) скопировать из<br/>" +
-"<b><u><a style='color:blue' href='https://github.com/olecom/plwiza.user.js/raw/master/plwiza_form.xlt'>" +
-"Excel'а (файл в этой сслыке)</a></u></b> <b style='color:red'>CTRL+C</b> " +
+"<b>Заполняем форму. Данные (4 первых столбца) скопировать из<br/><u>" +
+"<a style='color:blue' href='https://github.com/olecom/plwiza.user.js/raw/master/plwiza_form.xlt'>" +
+"Excel'а (файл в этой сслыке)</a></u> <b style='color:red'>CTRL+C</b> " +
 "вставить здесь <b style='color:red'>CTRL+V</b>:</b><br/>" +
-'<textarea id="plvizaformData" onfocus="javascript:this.value='+"''"+'" id="ccfgg" style="font-size:8pt;background-color:lightgreen;float:left" rows="3" cols="66">Пустой текст покажет Demo заполнения.</textarea>' +
-'<input value="Внести данные" onclick="javascript:read_xls_data()" type="button" style="font-weight:bold"/><br/>Версия ak: ' + ver +
-((te =lost['plwizadate']) ? '<br/><br/>Дата визы: ' + te : '')
+'<textarea id="plvizaformData" onfocus="javascript:this.value=' + "''" +
+'" id="ccfgg" style="font-size:8pt;background-color:lightgreen;float:left" ' +
+'rows="3" cols="66">Пустой текст покажет Demo заполнения.</textarea>' +
+'<input value="Внести данные" onclick="javascript:read_xls_data()" ' +
+'type="button" style="font-weight:bold"/><br/>' +
+'<span style="font-weight:normal">&nbsp;версия&nbsp;ak:&nbsp;' + ver + '</<span>' +
+((te = lost['plwizadate']) ? '<br/><br/>Дата визы: ' + te : '')
         )
         return
     } else if(lost.plwizadate) { delete lost.plwizadate }
