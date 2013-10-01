@@ -50,6 +50,7 @@ function gs(n){ return doc.getElementsByTagName(n) }
 function ce(v){ return doc.createEvent(v) }
 function cl(t){ return doc.createElement(t) }
 function q(s) { return s ? String(s).replace(/'/g, "\\'") : '' }
+function pad(n){return n < 10 ? '0' + n : n }
 
 function mkClick(){
     var ev = ce("MouseEvents")
@@ -246,6 +247,7 @@ JSON.stringify(plwizaCFG) + "</b><br/>или скопировать из " +
         te.focus()
         _msg_screen('Автозаполняем Город...')
         selectOption(te ,plwizaCFG.city)
+        if(lost.plwizadate) { delete lost.plwizadate }
 
         return // no other actions
     }// select City/Town/Placowek: from cfg, user select or default
@@ -268,7 +270,8 @@ JSON.stringify(plwizaCFG) + "</b><br/>или скопировать из " +
     /* == Finding of enabled types with dates ==*/
 
     if((te = gi('ctl00_cp_cbDzien'))){
-        lost['plwizadate'] = te.options[te.options.length - 1].text
+        if(!lost.plwizadate)// show beleived to be the date of the so-wantohave visa
+            lost.plwizadate = te.options[te.options.length - 1].text
 
         selectOption(te ,0 ,'last_item')
 
@@ -298,7 +301,6 @@ JSON.stringify(plwizaCFG) + "</b><br/>или скопировать из " +
             // "12:01".slice(3)  -> 01
             // "12:01".slice(0,2)-> 12
             function set_delay(){
-                function pad(n){ return n < 10 ? '0' + n : n }
                 var d = new Date(), dd = new Date(d)
                 d.setHours(parseInt(plwizaCFG.startTime.slice(0, 2)))
                 d.setMinutes(parseInt(plwizaCFG.startTime.slice(3, 5)))
@@ -330,14 +332,18 @@ JSON.stringify(plwizaCFG) + "</b><br/>или скопировать из " +
 "вставить здесь <b style='color:red'>CTRL+V</b>:</b><br/>" +
 '<textarea id="plvizaformData" onfocus="javascript:this.value=' + "''" +
 '" id="ccfgg" style="font-size:8pt;background-color:lightgreen;float:left" ' +
-'rows="3" cols="66">Пустой текст покажет Demo заполнения.</textarea>' +
+'rows="2" cols="66">Пустой текст покажет Demo заполнения.</textarea>' +
 '<input value="Внести данные" onclick="javascript:read_xls_data()" ' +
 'type="button" style="font-weight:bold"/><br/>' +
-'<span style="font-weight:normal">&nbsp;версия&nbsp;ak:&nbsp;' + ver + '</<span>' +
-((te = lost['plwizadate']) ? '<br/><br/>Дата визы: ' + te : '')
+'<span style="font-weight:normal">&nbsp;версия&nbsp;ak:&nbsp;' + ver + '</<span><br/>' +
+'время входа на форму: <b>' + (function enter_form_time(d){
+    return pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds())
+})(new Date()) + '</b>' +
+((te = lost['plwizadate']) ? '<br/>дата визы: <b>' + te + '</b>' : '')
         )
+
         return
-    } else if(lost.plwizadate) { delete lost.plwizadate }
+    }
 
     i = 0, te = gs('a')// this link seems to be very smart
     for(; i < te.length; i++) if(/RejestracjaSchengen/.test(te[i].id)){
