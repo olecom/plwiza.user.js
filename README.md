@@ -17,11 +17,11 @@ http://userscripts.org/scripts/show/178806
 
 * Заходим на сайт, конфигурируем скрипт (копируя E1:F6 в область настроек) или пользуемся настройками по-умолчанию.
 
-![cfg](http://dela.by/ftp/plwiza/plwiza-cfg.png)
+![cfg](http://dela.by/ftp/plwiza/plwiza-cfg2.png)
 
 * Попадая на форму заполнения, вставляем данные из Excel (столбцы A:D целиком) или пользуемся демонстрационным заполнением по-умолчанию.
 
-![form](http://dela.by/ftp/plwiza/plwiza-form.png)
+![form](http://dela.by/ftp/plwiza/plwiza-form2.png)
 
 О заполнении заявок на получение визы
 =====================================
