@@ -13,15 +13,15 @@ http://userscripts.org/scripts/show/178806
 ===========
 * Заполняем, проверяем и сохраняем в Excel данные для формы.
 
-![excel](http://dela.by/ftp/plwiza/plwiza-excel.png)
+![excel](img/plwiza-excel.png)
 
 * Заходим на сайт, конфигурируем скрипт (копируя E1:F6 в область настроек) или пользуемся настройками по-умолчанию.
 
-![cfg](http://dela.by/ftp/plwiza/plwiza-cfg2.png)
+![cfg](img/plwiza-cfg.png)
 
 * Попадая на форму заполнения, вставляем данные из Excel (столбцы A:D целиком) или пользуемся демонстрационным заполнением по-умолчанию.
 
-![form](http://dela.by/ftp/plwiza/plwiza-form2.png)
+![form](img/plwiza-form.png)
 
 О заполнении заявок на получение визы
 =====================================
