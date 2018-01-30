@@ -186,6 +186,7 @@ if('dev')console.log('config ' + cfgId, cfg)
             val = val.replace('&quot;', '"')
         }
 
+        el.scrollIntoView()
         el.setAttribute("value", val);
         el.value = val
         el.dispatchEvent(mk_change())
